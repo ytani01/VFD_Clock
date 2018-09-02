@@ -37,7 +37,9 @@ RTC_DS1307 rtc;
 #define PIN_SCL A5
 #define PIN_SDA A4
 
-#define INTERVAL 13
+//define INTERVAL1 2100
+#define INTERVAL1 1000  // usec
+//#define INTERVAL 13
 #define NUM_DIGITS 6
 
 #define STATE_BUTTON_NOT_PRESSED 0
@@ -61,9 +63,10 @@ uint8_t modeButtonState = STATE_BUTTON_NOT_PRESSED;
 unsigned long elapsed = 0;
 
 
-uint8_t digits[] = {PIN_DIGIT_0, PIN_DIGIT_1, PIN_DIGIT_2, PIN_DIGIT_3,
-                    PIN_DIGIT_4, PIN_DIGIT_5
-                   };
+uint8_t digits[] = {
+  PIN_DIGIT_0, PIN_DIGIT_1, PIN_DIGIT_2, PIN_DIGIT_3,
+  PIN_DIGIT_4, PIN_DIGIT_5
+};
 uint8_t times[NUM_DIGITS];
 
 /* ================================== */
@@ -285,7 +288,7 @@ void writeVFD() {
       if (i == 2 || i == 4) decodeSeg(times[i], dot, 0);
       else decodeSeg(times[i], 0, 0);
     }
-    delayMicroseconds(2100);
+    delayMicroseconds(INTERVAL1);
     clearSeg();
     digitalWrite(digits[i], LOW);
   }
@@ -329,7 +332,7 @@ void setup() {
     bTimeSetDone = 0;
   }
 
-  FlexiTimer2::set(INTERVAL, writeVFD);
+  FlexiTimer2::set(INTERVAL1 * NUM_DIGITS / 1000 + 1, writeVFD);
   FlexiTimer2::start();
 
   pciSetup(PIN_BUTTON_MODE);
@@ -340,13 +343,11 @@ void setup() {
 
 void loop() {
   if (mode == MODE_NORMAL) {
-    if (millis() % 50 == 0) {
-      DateTime now = rtc.now();
-      hour = now.hour();
-      minute = now.minute();
-      second = now.second();
-    }
-    delay(5);
+    DateTime now = rtc.now();
+    hour = now.hour();
+    minute = now.minute();
+    second = now.second();
+    delay(50);
     return;
   } // if (MODE_NORMAL)
 
@@ -354,7 +355,7 @@ void loop() {
   // mode != MODE_NORMAL
   //
   updateRTC();
-  
+
   if (mode == MODE_TIMESET_HOUR) {
     hour = procLongPress(hour, 24);
   } // if (MODE_TIMESET_HOUR)

@@ -251,9 +251,6 @@ void loop() {
   }
 
   if ( ButtonCount_PressCount == 2 || ( ButtonCount_LongPressed && (ButtonCount_PressCount % 20 == 0)) ) {
-    uint16_t  year    = CurTime.year();
-    uint8_t   month   = CurTime.month();
-    uint8_t   day     = CurTime.day();
     uint8_t   hour    = CurTime.hour();
     uint8_t   minute  = CurTime.minute();
     uint8_t   second  = CurTime.second();
@@ -261,17 +258,15 @@ void loop() {
     if ( Mode == MODE_TIMESET_HOUR ) {
       hour = (hour + 1) % 24;
     }
-
     if ( Mode == MODE_TIMESET_MIN ) {
       minute = (minute + 1) % 60;
     }
-
     if ( Mode == MODE_TIMESET_SEC ) {
       second = 0;
     }
 
-    CurTime = DateTime(year, month, day, hour, minute, second);
-    Rtc.adjust(CurTime);
+    CurTime = DateTime(CurTime.year(), CurTime.month(), CurTime.day(), hour, minute, second);
+    //Rtc.adjust(CurTime);
   }
 
   dispBuffer[0] = CurTime.hour()    / 10;

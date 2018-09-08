@@ -9,18 +9,18 @@
 //   * 大きなバグ修正やちょっとした機能変更をしたら、「BB」をカウントアップして、「CC」を「00」に戻す。
 //   * 機能や作りを大きく変更した場合は、「AA」カウントアップして、「BB.CC」を「00.00」に戻す。
 //
-String VersionStr = "03.02.00";
+String VersionStr = "03.02.01";
 #define DISP_VERSION_MSEC 5000 // msec
 
 #include <Wire.h>
 #include "RTClib.h"
 
-#define DISP_DELAY                   3 // msec
+#define DISP_DELAY                   2 // msec
 #define BLINK_INTERVAL             500 // msec
 #define BLINK_ON_MSEC              350 // msec
 #define BUTTON_DEBOUNCE            150 // msec
 #define BUTTON_LONGPRESSED_MSEC   1000 // msec
-#define BUTTON_REPEAT_MSEC         180 // msec
+#define BUTTON_REPEAT_MSEC         100 // msec
 
 #define PIN_SCL   A5
 #define PIN_SDA   A4
@@ -36,6 +36,7 @@ uint8_t PinDigit[] = {
   2, A0, 13, 5, A3, A2
 };
 unsigned long DigitN = sizeof(PinDigit) / sizeof(uint8_t);
+unsigned long DigitI = 0;
 
 boolean Num0[] = {HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, LOW };
 boolean Num1[] = {LOW , HIGH, HIGH, LOW , LOW , LOW , LOW };
@@ -52,11 +53,12 @@ boolean NumClr[] = {LOW , LOW , LOW , LOW , LOW , LOW , LOW }; // clear
 boolean *Num[] = {Num0, Num1, Num2, Num3, Num4, Num5, Num6, Num7, Num8, Num9, NumClr};
 #define NUM_CLR 10
 
-#define MODE_NORMAL         0
-#define MODE_SETTIME_HOUR   1
-#define MODE_SETTIME_MIN    2
-#define MODE_SETTIME_SEC    3
-#define MODE_DISP_VERSION   9
+#define MODE_NORMAL          0
+#define MODE_SETTIME_HOUR    1
+#define MODE_SETTIME_MIN     2
+#define MODE_SETTIME_SEC     3
+#define MODE_DISP_VERSION    9
+#define MODE_ERROR        0xff
 uint8_t   Mode  = MODE_NORMAL;
 
 RTC_DS1307  Rtc;
@@ -150,7 +152,7 @@ void changeTime() {
   } else if ( Mode == MODE_SETTIME_MIN ) {
     minute = (minute + 1) % 60;
   } else if ( Mode == MODE_SETTIME_SEC ) {
-    second = (second + 1) % 60;
+    second = ((second / 10) * 10 + 10) % 60;
   }
 
   CurTime = DateTime(CurTime.year(), CurTime.month(), CurTime.day(), hour, minute, second);

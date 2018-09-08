@@ -9,7 +9,7 @@
 //   * 大きなバグ修正やちょっとした機能変更をしたら、「BB」をカウントアップして、「CC」を「00」に戻す。
 //   * 機能や作りを大きく変更した場合は、「AA」カウントアップして、「BB.CC」を「00.00」に戻す。
 //
-String VersionStr = "03.02.03";
+String VersionStr = "03.02.04";
 #define DISP_VERSION_MSEC 5000 // msec
 
 #include <Wire.h>
@@ -57,8 +57,11 @@ boolean *Num[] = {Num0, Num1, Num2, Num3, Num4, Num5, Num6, Num7, Num8, Num9, Nu
 #define MODE_SETTIME_HOUR    1
 #define MODE_SETTIME_MIN     2
 #define MODE_SETTIME_SEC     3
+#define MODE_DATE            4
 #define MODE_DISP_VERSION    9
 #define MODE_ERROR        0xff
+#define DISP_DATE_MSEC    5000 // msec
+unsigned long DateStart    = 0; // millis()
 uint8_t   Mode  = MODE_NORMAL;
 
 RTC_DS1307  Rtc;
@@ -88,7 +91,7 @@ boolean getTime(DateTime *dt) {
     FlagTimeUpdated = false;
     // Serial.println("msec_offset = " + String(msec_offset+10000) + ", prev_msec_offset = " + String(prev_msec_offset) + ", FlagTimeUpdated:" + String(FlagTimeUpdated));
   }
-  if ( FlagTimeUpdated == false ) {
+  if ( ! FlagTimeUpdated ) {
     if ( msec_offset >= MsecOffset ) {
       *dt = Rtc.now();
       FlagTimeUpdated = true;
@@ -143,6 +146,11 @@ ISR (PCINT2_vect) {
     Serial.println("ButtonCount.press_start = " + String(ButtonCount.press_start));
     if ( Mode == MODE_SETTIME_HOUR || Mode == MODE_SETTIME_MIN || Mode == MODE_SETTIME_SEC ) {
       changeTime();
+    }
+    if ( Mode == MODE_NORMAL ) {
+      Mode = MODE_DATE;
+      DateStart = millis();
+      Serial.println("* MODE_DATE");
     }
   } else {
     Serial.println("PIN_BUTTON_COUNT: HIGH");
@@ -275,7 +283,14 @@ void displayVFD() {
       dispBuffer[4] = VersionStr[6] - '0';
       dispBuffer[5] = VersionStr[7] - '0';
     }
-  } else {
+  } else if ( Mode == MODE_DATE ) {
+    dispBuffer[0] = (CurTime.year() % 100) / 100;
+    dispBuffer[1] = (CurTime.year() % 100) % 100;
+    dispBuffer[2] = CurTime.month() / 10;
+    dispBuffer[3] = CurTime.month() % 10;
+    dispBuffer[4] = CurTime.day() / 10;
+    dispBuffer[5] = CurTime.day() % 10;
+  } else { // MODE_NORMAL
     dispBuffer[0] = CurTime.hour() / 10;
     if ( dispBuffer[0] == 0 ) {
       dispBuffer[0] = NUM_CLR;
@@ -345,6 +360,10 @@ void loop() {
   unsigned long cur_msec = millis();
 
   if ( Mode == MODE_DISP_VERSION && cur_msec > DISP_VERSION_MSEC ) {
+    Mode = MODE_NORMAL;
+    Serial.println("* MODE_NORMAL");
+  }
+  if ( Mode == MODE_DATE && cur_msec - DateStart > DISP_DATE_MSEC ) {
     Mode = MODE_NORMAL;
     Serial.println("* MODE_NORMAL");
   }

@@ -9,7 +9,7 @@
 //   * 大きなバグ修正やちょっとした機能変更をしたら、「BB」をカウントアップして、「CC」を「00」に戻す。
 //   * 機能や作りを大きく変更した場合は、「AA」カウントアップして、「BB.CC」を「00.00」に戻す。
 //
-String VersionStr = "03.02.01";
+String VersionStr = "03.02.02";
 #define DISP_VERSION_MSEC 5000 // msec
 
 #include <Wire.h>
@@ -63,6 +63,8 @@ uint8_t   Mode  = MODE_NORMAL;
 
 RTC_DS1307  Rtc;
 DateTime CurTime;
+DateTime PrevTime;
+unsigned long OffsetMsec = 0; // msec
 volatile boolean AdjustFlag = false;
 
 struct button_t {
@@ -77,6 +79,43 @@ unsigned long Prev_millis = 0;
 uint8_t dispBuffer[] = {0, 1, 2, 3, 4, 5};
 
 //=======================================================================
+boolean getTime(DateTime *dt) {
+  unsigned long offset_msec = millis() % 1000;
+
+  PrevTime = DateTime(*dt);
+
+  // 【注意】
+  //  ロジックとしては条件を逆にして、必要な時だけ Rtc.now() することも可能だが、
+  //  そうすると表示間隔にばらつきが出て全体の明るさに「ゆらぎ」ができる(?)
+#if 1
+  // 全体の明るさ一定
+  *dt = Rtc.now();
+  if ( offset_msec < OffsetMsec ) {
+    *dt = DateTime(PrevTime);
+  }
+#else
+  // 全体の明るさに「ゆらぎ」ができる
+  *dt = DateTime(PrevTime);
+  if ( offset_msec >= OffsetMsec ) {
+    *dt = Rtc.now();
+  }
+#endif
+
+#if 0
+  if ( dt->second() != PrevTime.second() ) {
+    Serial.println(String(dt->second()) + ", offset_msec = " + String(offset_msec));
+  }
+#endif
+  PrevTime = DateTime(*dt);
+  return true;
+}
+
+boolean setTime(DateTime *dt) {
+  OffsetMsec = millis() % 1000;
+  Rtc.adjust(*dt);
+  return true;
+}
+
 void pciSetup(byte pin) {
   *digitalPinToPCMSK(pin) |= bit (digitalPinToPCMSKbit(pin));   // enable pin
   PCIFR  |= bit (digitalPinToPCICRbit(pin));                    // clear any outstanding interrupt
@@ -196,33 +235,32 @@ void checkButton(unsigned long cur_msec, struct button_t *button) {
 //
 // Display one digit
 //
-void dispOneDigit(uint8_t digit, uint8_t num, boolean dp) {
-  for (int i = 0; i < DigitN; i++) {
-    digitalWrite(PinDigit[i], LOW);
+void dispOneDigit() {
+  boolean dp = false;
+
+  if ( dispBuffer[DigitI] != NUM_CLR ) {
+    if ( DigitI == 1 || DigitI == 3 ) {
+      dp = true;
+    }
+    for (int i = 0; i < SegN - 1; i++) {
+      digitalWrite(PinSeg[i], Num[dispBuffer[DigitI]][i]);
+    }
+    digitalWrite(PinSeg[SegN - 1], dp);
+    digitalWrite(PinDigit[DigitI], HIGH);
   }
-  if ( num == NUM_CLR ) {
-    return;
-  }
-  for (int i = 0; i < SegN - 1; i++) {
-    digitalWrite(PinSeg[i], Num[num][i]);
-  }
-  digitalWrite(PinSeg[SegN - 1], dp);
-  digitalWrite(PinDigit[digit], HIGH);
+
+  delay(DISP_DELAY);
+
+  digitalWrite(PinDigit[DigitI], LOW);
+  DigitI = (DigitI + 1) % DigitN;
 }
 
 //
 // Display all digits
 //
 void dispAllDigit() {
-  boolean dp;
-
   for (int i = 0; i < DigitN; i++) {
-    dp = false;
-    if ( (i == 1 || i ==  3) && dispBuffer[i] != NUM_CLR ) {
-      dp = true;
-    }
-    dispOneDigit(i, dispBuffer[i], dp);
-    delay(DISP_DELAY);
+    dispOneDigit();
   }
 }
 
@@ -271,7 +309,8 @@ void displayVFD() {
     }
   }
 
-  dispAllDigit();
+  // dispAllDigit();
+  dispOneDigit();
 }
 //=======================================================================
 void setup() {
@@ -330,10 +369,12 @@ void loop() {
       return;
     }
     if ( AdjustFlag ) {
-      Rtc.adjust(CurTime);
+      // Rtc.adjust(CurTime);
+      setTime(&CurTime);
       AdjustFlag = false;
     }
-    CurTime = Rtc.now();
+    // CurTime = Rtc.now();
+    getTime(&CurTime);
   } else if ( Mode == MODE_SETTIME_HOUR || Mode == MODE_SETTIME_MIN || Mode == MODE_SETTIME_SEC ) {
     if ( ButtonCount.repeat ) {
       changeTime();

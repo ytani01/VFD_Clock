@@ -9,7 +9,7 @@
 //   * 大きなバグ修正やちょっとした機能変更をしたら、「BB」をカウントアップして、「CC」を「00」に戻す。
 //   * 機能や作りを大きく変更した場合は、「AA」カウントアップして、「BB.CC」を「00.00」に戻す。
 //
-String VersionStr = "03.02.02";
+String VersionStr = "03.02.03";
 #define DISP_VERSION_MSEC 5000 // msec
 
 #include <Wire.h>
@@ -64,7 +64,8 @@ uint8_t   Mode  = MODE_NORMAL;
 RTC_DS1307  Rtc;
 DateTime CurTime;
 DateTime PrevTime;
-unsigned long OffsetMsec = 0; // msec
+unsigned long MsecOffset = 0; // msec
+boolean FlagTimeUpdated     = false;
 volatile boolean AdjustFlag = false;
 
 struct button_t {
@@ -80,38 +81,27 @@ uint8_t dispBuffer[] = {0, 1, 2, 3, 4, 5};
 
 //=======================================================================
 boolean getTime(DateTime *dt) {
-  unsigned long offset_msec = millis() % 1000;
+  unsigned long msec_offset = millis() % 1000;
+  static unsigned long prev_msec_offset = 0;
 
-  PrevTime = DateTime(*dt);
+  if ( msec_offset < prev_msec_offset ) {
+    FlagTimeUpdated = false;
+    // Serial.println("msec_offset = " + String(msec_offset+10000) + ", prev_msec_offset = " + String(prev_msec_offset) + ", FlagTimeUpdated:" + String(FlagTimeUpdated));
+  }
+  if ( FlagTimeUpdated == false ) {
+    if ( msec_offset >= MsecOffset ) {
+      *dt = Rtc.now();
+      FlagTimeUpdated = true;
+      // Serial.println("msec_offset = " + String(msec_offset+10000) + ", MsecOffset = " + String(MsecOffset) + ", FlagTimeUpdated: " + String(FlagTimeUpdated));
+    }
+  }
 
-  // 【注意】
-  //  ロジックとしては条件を逆にして、必要な時だけ Rtc.now() することも可能だが、
-  //  そうすると表示間隔にばらつきが出て全体の明るさに「ゆらぎ」ができる(?)
-#if 1
-  // 全体の明るさ一定
-  *dt = Rtc.now();
-  if ( offset_msec < OffsetMsec ) {
-    *dt = DateTime(PrevTime);
-  }
-#else
-  // 全体の明るさに「ゆらぎ」ができる
-  *dt = DateTime(PrevTime);
-  if ( offset_msec >= OffsetMsec ) {
-    *dt = Rtc.now();
-  }
-#endif
-
-#if 0
-  if ( dt->second() != PrevTime.second() ) {
-    Serial.println(String(dt->second()) + ", offset_msec = " + String(offset_msec));
-  }
-#endif
-  PrevTime = DateTime(*dt);
+  prev_msec_offset = msec_offset;
   return true;
 }
 
-boolean setTime(DateTime *dt) {
-  OffsetMsec = millis() % 1000;
+boolean setTime(DateTime * dt) {
+  MsecOffset = millis() % 1000;
   Rtc.adjust(*dt);
   return true;
 }
@@ -369,11 +359,9 @@ void loop() {
       return;
     }
     if ( AdjustFlag ) {
-      // Rtc.adjust(CurTime);
       setTime(&CurTime);
       AdjustFlag = false;
     }
-    // CurTime = Rtc.now();
     getTime(&CurTime);
   } else if ( Mode == MODE_SETTIME_HOUR || Mode == MODE_SETTIME_MIN || Mode == MODE_SETTIME_SEC ) {
     if ( ButtonCount.repeat ) {

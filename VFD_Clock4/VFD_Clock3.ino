@@ -9,7 +9,7 @@
 //   * 大きなバグ修正やちょっとした機能変更をしたら、「BB」をカウントアップして、「CC」を「00」に戻す。
 //   * 機能や作りを大きく変更した場合は、「AA」カウントアップして、「BB.CC」を「00.00」に戻す。
 //
-String VersionStr = "03.02.04";
+String VersionStr = "04.01.00";
 #define DISP_VERSION_MSEC 5000 // msec
 
 #include <Wire.h>
@@ -53,16 +53,21 @@ boolean NumClr[] = {LOW , LOW , LOW , LOW , LOW , LOW , LOW }; // clear
 boolean *Num[] = {Num0, Num1, Num2, Num3, Num4, Num5, Num6, Num7, Num8, Num9, NumClr};
 #define NUM_CLR 10
 
-#define MODE_NORMAL          0
-#define MODE_SETTIME_HOUR    1
-#define MODE_SETTIME_MIN     2
-#define MODE_SETTIME_SEC     3
-#define MODE_DATE            4
-#define MODE_DISP_VERSION    9
+#define MODE_NORMAL       0x00
+#define MODE_SET_HOUR     0x01
+#define MODE_SET_MIN      0x02
+#define MODE_SET_SEC      0x03
+#define MODE_DATE         0x10
+#define MODE_SET_YEAR     0x11
+#define MODE_SET_MONTH    0x12
+#define MODE_SET_DAY      0x13
+#define MODE_DISP_VERSION 0x30
 #define MODE_ERROR        0xff
+
 #define DISP_DATE_MSEC    5000 // msec
-unsigned long DateStart    = 0; // millis()
-uint8_t   Mode  = MODE_NORMAL;
+unsigned long   DateStart         = 0; // millis()
+uint8_t         Mode              = MODE_NORMAL;
+boolean         enableBlinkEffect = true;
 
 RTC_DS1307  Rtc;
 DateTime CurTime;
@@ -104,7 +109,9 @@ boolean getTime(DateTime *dt) {
 }
 
 boolean setTime(DateTime * dt) {
-  MsecOffset = millis() % 1000;
+  if ( Mode == MODE_NORMAL ) {
+    MsecOffset = millis() % 1000;
+  }
   Rtc.adjust(*dt);
   return true;
 }
@@ -144,13 +151,9 @@ ISR (PCINT2_vect) {
     ButtonCount.long_pressed = false;
     ButtonCount.repeat = false;
     Serial.println("ButtonCount.press_start = " + String(ButtonCount.press_start));
-    if ( Mode == MODE_SETTIME_HOUR || Mode == MODE_SETTIME_MIN || Mode == MODE_SETTIME_SEC ) {
+    if ( Mode == MODE_SET_YEAR || Mode == MODE_SET_MONTH || Mode == MODE_SET_DAY ||
+         Mode == MODE_SET_HOUR || Mode == MODE_SET_MIN   || Mode == MODE_SET_SEC ) {
       changeTime();
-    }
-    if ( Mode == MODE_NORMAL ) {
-      Mode = MODE_DATE;
-      DateStart = millis();
-      Serial.println("* MODE_DATE");
     }
   } else {
     Serial.println("PIN_BUTTON_COUNT: HIGH");
@@ -162,14 +165,32 @@ ISR (PCINT2_vect) {
 
 void setMode() {
   if ( Mode == MODE_NORMAL ) {
-    // Do nothing !!
-  } else if ( Mode == MODE_SETTIME_HOUR ) {
-    Mode = MODE_SETTIME_MIN;
-    Serial.println("* MODE_SETTIME_MIN");
-  } else if ( Mode == MODE_SETTIME_MIN ) {
-    Mode = MODE_SETTIME_SEC;
-    Serial.println("* MODE_SETTIME_SEC");
-  } else if ( Mode == MODE_SETTIME_SEC ) {
+    Mode = MODE_DATE;
+    Serial.println("* MODE_DAET");
+    DateStart = millis();
+  } else if ( Mode == MODE_DATE ) {
+    Mode = MODE_NORMAL;
+    Serial.println("* MODE_NORMAL");
+  } else if ( Mode == MODE_SET_YEAR ) {
+    Mode = MODE_SET_MONTH;
+    Serial.println("* MODE_SET_MONTH");
+  } else if ( Mode == MODE_SET_MONTH ) {
+    Mode = MODE_SET_DAY;
+    Serial.println("* MODE_SET_DAY");
+  } else if ( Mode == MODE_SET_DAY ) {
+    Mode = MODE_SET_HOUR;
+    Serial.println("* MODE_SET_HOUR");
+    //    Mode = MODE_DATE;
+    //    Serial.println("* MODE_DATE");
+    //    DateStart = millis();
+    //    AdjustFlag = true;
+  } else if ( Mode == MODE_SET_HOUR ) {
+    Mode = MODE_SET_MIN;
+    Serial.println("* MODE_SET_MIN");
+  } else if ( Mode == MODE_SET_MIN ) {
+    Mode = MODE_SET_SEC;
+    Serial.println("* MODE_SET_SEC");
+  } else if ( Mode == MODE_SET_SEC ) {
     Mode = MODE_NORMAL;
     Serial.println("* MODE_NORMAL");
     AdjustFlag = true;
@@ -180,19 +201,52 @@ void setMode() {
 }
 
 void changeTime() {
+  uint8_t year    = CurTime.year() % 100;
+  uint8_t month   = CurTime.month();
+  uint8_t day     = CurTime.day();
   uint8_t hour    = CurTime.hour();
   uint8_t minute  = CurTime.minute();
   uint8_t second  = CurTime.second();
+  uint8_t days_in_month = 31;
 
-  if ( Mode == MODE_SETTIME_HOUR ) {
+  if ( month == 4 || month == 6 || month == 9 || month == 11 ) {
+    days_in_month = 30;
+  }
+  if ( month == 2 ) {
+    if ( ( year % 400 == 0 ) || ( year % 100 != 0 && year % 4 == 0 ) ) {
+      days_in_month = 29;
+    } else {
+      days_in_month = 28;
+    }
+  }
+  if ( Mode == MODE_SET_YEAR ) {
+    year = ( year + 1 ) % 100;
+  }
+  if ( Mode == MODE_SET_MONTH ) {
+    if ( month == 12 ) {
+      month = 1;
+    } else {
+      month++;
+    }
+  }
+  if ( Mode == MODE_SET_DAY ) {
+    if ( day == days_in_month ) {
+      day = 1;
+    } else {
+      day++;
+    }
+  }
+  if ( Mode == MODE_SET_HOUR ) {
     hour = (hour + 1) % 24;
-  } else if ( Mode == MODE_SETTIME_MIN ) {
+  }
+  if ( Mode == MODE_SET_MIN ) {
     minute = (minute + 1) % 60;
-  } else if ( Mode == MODE_SETTIME_SEC ) {
+  }
+  if ( Mode == MODE_SET_SEC ) {
     second = ((second / 10) * 10 + 10) % 60;
   }
 
-  CurTime = DateTime(CurTime.year(), CurTime.month(), CurTime.day(), hour, minute, second);
+  CurTime = DateTime(year, month, day, hour, minute, second);
 }
 
 void checkButton(unsigned long cur_msec, struct button_t *button) {
@@ -237,8 +291,10 @@ void dispOneDigit() {
   boolean dp = false;
 
   if ( dispBuffer[DigitI] != NUM_CLR ) {
-    if ( DigitI == 1 || DigitI == 3 ) {
-      dp = true;
+    if ( (DigitI == 1 || DigitI == 3) ) {
+      if ( Mode == MODE_NORMAL || Mode == MODE_SET_HOUR || Mode == MODE_SET_MIN || Mode == MODE_SET_SEC || Mode == MODE_DISP_VERSION ) {
+        dp = true;
+      }
     }
     for (int i = 0; i < SegN - 1; i++) {
       digitalWrite(PinSeg[i], Num[dispBuffer[DigitI]][i]);
@@ -283,14 +339,14 @@ void displayVFD() {
       dispBuffer[4] = VersionStr[6] - '0';
       dispBuffer[5] = VersionStr[7] - '0';
     }
-  } else if ( Mode == MODE_DATE ) {
-    dispBuffer[0] = (CurTime.year() % 100) / 100;
-    dispBuffer[1] = (CurTime.year() % 100) % 100;
+  } else if ( Mode == MODE_DATE || Mode == MODE_SET_YEAR || Mode == MODE_SET_MONTH || Mode == MODE_SET_DAY ) {
+    dispBuffer[0] = (CurTime.year() % 100) / 10;
+    dispBuffer[1] = (CurTime.year() % 100) % 10;
     dispBuffer[2] = CurTime.month() / 10;
     dispBuffer[3] = CurTime.month() % 10;
     dispBuffer[4] = CurTime.day() / 10;
     dispBuffer[5] = CurTime.day() % 10;
-  } else { // MODE_NORMAL
+  } else { // MODE_NORMAL, MODE_SET_*
     dispBuffer[0] = CurTime.hour() / 10;
     if ( dispBuffer[0] == 0 ) {
       dispBuffer[0] = NUM_CLR;
@@ -300,16 +356,63 @@ void displayVFD() {
     dispBuffer[3] = CurTime.minute() % 10;
     dispBuffer[4] = CurTime.second() / 10;
     dispBuffer[5] = CurTime.second() % 10;
+
+    if ( Mode == MODE_NORMAL ) {
+      // Blink effect
+      int bsec2 = 1;
+      int bsec1 = 9;
+      int hour1 = CurTime.hour() / 10;
+      int hour2 = CurTime.hour() % 10;
+      int min1 = CurTime.minute() / 10;
+      int min2 = CurTime.minute() % 10;
+      int sec1 = CurTime.second() / 10;
+      int sec2 = CurTime.second() % 10;
+
+      if ( blinkOff() && enableBlinkEffect ) {
+#if 0
+        if ( sec2 > bsec1 ) {
+          dispBuffer[4] = NUM_CLR;
+          if ( sec1 == 5 ) {
+            dispBuffer[3] = NUM_CLR;
+            if ( min2 == 9 ) {
+              dispBuffer[2] = NUM_CLR;
+              if ( min1 == 5 ) {
+                dispBuffer[1] = NUM_CLR;
+                if ( (hour2 == 9 && hour1 == 1) || ( hour2 == 4 && hour1 == 2 ) ) {
+                  dispBuffer[0] = NUM_CLR;
+                }
+              }
+            }
+          }
+        }
+#endif
+        if ( sec2 < bsec2 ) {
+          dispBuffer[4] = NUM_CLR;
+          if ( sec1 == 0 ) {
+            dispBuffer[3] = NUM_CLR;
+            if ( min2 == 0 ) {
+              dispBuffer[2] = NUM_CLR;
+              if ( min1 == 0 ) {
+                dispBuffer[1] = NUM_CLR;
+                if ( ( hour2 == 0 && hour1 == 2 ) || ( hour2 == 0 && hour1 == 1 ) ) {
+                  dispBuffer[0] = NUM_CLR;
+                }
+              }
+            }
+          }
+        }
+      } // blinkOFF()
+    } // MODE_NORMAL
   }
 
   if ( digitalRead(PIN_BUTTON_COUNT) == HIGH && blinkOff() ) {
-    if ( Mode == MODE_SETTIME_HOUR ) {
+    if ( Mode == MODE_SET_YEAR || Mode == MODE_SET_HOUR ) {
       dispBuffer[0] = dispBuffer[0 + 1] = NUM_CLR;
     }
-    if ( Mode == MODE_SETTIME_MIN ) {
+    if ( Mode == MODE_SET_MONTH || Mode == MODE_SET_MIN ) {
       dispBuffer[2] = dispBuffer[2 + 1] = NUM_CLR;
     }
-    if ( Mode == MODE_SETTIME_SEC ) {
+    if ( Mode == MODE_SET_DAY || Mode == MODE_SET_SEC ) {
       dispBuffer[4] = dispBuffer[4 + 1] = NUM_CLR;
     }
   }
@@ -324,6 +427,7 @@ void setup() {
 
   Wire.begin();
   Rtc.begin();
+  //Rtc.adjust(DateTime(__DATE__, __TIME__));
 
   Serial.println("SegN = " + String(SegN));
   Serial.println("DigitN = " + String(DigitN));
@@ -371,18 +475,30 @@ void loop() {
   checkButton(cur_msec, &ButtonMode);
   checkButton(cur_msec, &ButtonCount);
 
-  if ( Mode == MODE_NORMAL ) {
+  if ( Mode == MODE_NORMAL || Mode == MODE_DATE ) {
     if ( ButtonMode.long_pressed ) {
-      Mode = MODE_SETTIME_HOUR;
-      Serial.println("* MODE_SETTIME_HOUR");
+      Mode = MODE_SET_YEAR;
+      Serial.println("* MODE_SET_YEAR");
       return;
+    }
+    if ( ButtonCount.long_pressed ) {
+      if ( enableBlinkEffect ) {
+        enableBlinkEffect = false;
+      } else {
+        enableBlinkEffect = true;
+      }
+      Serial.println("enableBlinkEffect: " + String(enableBlinkEffect));
+      ButtonCount.repeat = false;
+      ButtonCount.long_pressed = false;
+      ButtonCount.press_start = 0;
     }
     if ( AdjustFlag ) {
       setTime(&CurTime);
       AdjustFlag = false;
     }
     getTime(&CurTime);
-  } else if ( Mode == MODE_SETTIME_HOUR || Mode == MODE_SETTIME_MIN || Mode == MODE_SETTIME_SEC ) {
+  } else if ( Mode == MODE_SET_YEAR || Mode == MODE_SET_MONTH || Mode == MODE_SET_DAY ||
+              Mode == MODE_SET_HOUR || Mode == MODE_SET_MIN   || Mode == MODE_SET_SEC ) {
     if ( ButtonCount.repeat ) {
       changeTime();
       ButtonCount.press_start = cur_msec;

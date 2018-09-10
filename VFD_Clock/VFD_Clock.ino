@@ -27,27 +27,25 @@ String VersionStr = "04.01.01";
 #define PIN_BUTTON_MODE   3
 #define PIN_BUTTON_COUNT  4
 
-uint8_t PinSeg[] = { 6, 7, 8, 9, 10, 11, 12, A1 };
-uint8_t SegN = sizeof(PinSeg) / sizeof(uint8_t);
+uint8_t PinSeg[]   = { 6, 7, 8, 9, 10, 11, 12, A1 };
+uint8_t SegN       = sizeof(PinSeg) / sizeof(uint8_t);
+boolean Num0[]     = {HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, LOW };
+boolean Num1[]     = {LOW , HIGH, HIGH, LOW , LOW , LOW , LOW };
+boolean Num2[]     = {HIGH, HIGH, LOW , HIGH, HIGH, LOW , HIGH};
+boolean Num3[]     = {HIGH, HIGH, HIGH, HIGH, LOW , LOW , HIGH};
+boolean Num4[]     = {LOW , HIGH, HIGH, LOW , LOW , HIGH, HIGH};
+boolean Num5[]     = {HIGH, LOW , HIGH, HIGH, LOW , HIGH, HIGH};
+boolean Num6[]     = {HIGH, LOW , HIGH, HIGH, HIGH, HIGH, HIGH};
+boolean Num7[]     = {HIGH, HIGH, HIGH, LOW , LOW , LOW , LOW };
+boolean Num8[]     = {HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH};
+boolean Num9[]     = {HIGH, HIGH, HIGH, HIGH, LOW , HIGH, HIGH};
+boolean NumClr[]   = {LOW , LOW , LOW , LOW , LOW , LOW , LOW }; // clear
+boolean *Num[]     = {Num0, Num1, Num2, Num3, Num4, Num5, Num6, Num7, Num8, Num9, NumClr};
+#define NUM_CLR    10
 
 uint8_t PinDigit[] = { 2, A0, 13, 5, A3, A2 };
-uint8_t DigitN = sizeof(PinDigit) / sizeof(uint8_t);
-uint8_t DigitI = 0;
-
-boolean Num0[] = {HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, LOW };
-boolean Num1[] = {LOW , HIGH, HIGH, LOW , LOW , LOW , LOW };
-boolean Num2[] = {HIGH, HIGH, LOW , HIGH, HIGH, LOW , HIGH};
-boolean Num3[] = {HIGH, HIGH, HIGH, HIGH, LOW , LOW , HIGH};
-boolean Num4[] = {LOW , HIGH, HIGH, LOW , LOW , HIGH, HIGH};
-boolean Num5[] = {HIGH, LOW , HIGH, HIGH, LOW , HIGH, HIGH};
-boolean Num6[] = {HIGH, LOW , HIGH, HIGH, HIGH, HIGH, HIGH};
-boolean Num7[] = {HIGH, HIGH, HIGH, LOW , LOW , LOW , LOW };
-boolean Num8[] = {HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, HIGH};
-boolean Num9[] = {HIGH, HIGH, HIGH, HIGH, LOW , HIGH, HIGH};
-boolean NumClr[] = {LOW , LOW , LOW , LOW , LOW , LOW , LOW }; // clear
-
-boolean *Num[] = {Num0, Num1, Num2, Num3, Num4, Num5, Num6, Num7, Num8, Num9, NumClr};
-#define NUM_CLR 10
+uint8_t DigitN     = sizeof(PinDigit) / sizeof(uint8_t);
+uint8_t DigitI     = 0;
 
 #define MODE_NORMAL               0x00
 #define MODE_SET_HOUR             0x01

@@ -9,7 +9,7 @@
 //   * 大きなバグ修正やちょっとした機能変更をしたら、「BB」をカウントアップして、「CC」を「00」に戻す。
 //   * 機能や作りを大きく変更した場合は、「AA」カウントアップして、「BB.CC」を「00.00」に戻す。
 //
-String VersionStr = "04.01.00";
+String VersionStr = "04.01.01";
 #define DISP_VERSION_MSEC 5000 // msec
 
 #include <Wire.h>
@@ -359,8 +359,8 @@ void displayVFD() {
 
     if ( Mode == MODE_NORMAL ) {
       // Blink effect
+      int bsec1 = 57;
       int bsec2 = 1;
-      int bsec1 = 9;
       int hour1 = CurTime.hour() / 10;
       int hour2 = CurTime.hour() % 10;
       int min1 = CurTime.minute() / 10;
@@ -369,23 +369,9 @@ void displayVFD() {
       int sec2 = CurTime.second() % 10;
 
       if ( blinkOff() && enableBlinkEffect ) {
-#if 0
-        if ( sec2 > bsec1 ) {
-          dispBuffer[4] = NUM_CLR;
-          if ( sec1 == 5 ) {
-            dispBuffer[3] = NUM_CLR;
-            if ( min2 == 9 ) {
-              dispBuffer[2] = NUM_CLR;
-              if ( min1 == 5 ) {
-                dispBuffer[1] = NUM_CLR;
-                if ( (hour2 == 9 && hour1 == 1) || ( hour2 == 4 && hour1 == 2 ) ) {
-                  dispBuffer[0] = NUM_CLR;
-                }
-              }
-            }
-          }
-        }
-#endif
+//        if ( CurTime.second() >= bsec1 ) {
+//          dispBuffer[4] = dispBuffer[5] = NUM_CLR;
+//        }
         if ( sec2 < bsec2 ) {
           dispBuffer[4] = NUM_CLR;
           if ( sec1 == 0 ) {

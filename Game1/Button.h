@@ -1,8 +1,8 @@
 // Button.h
 // (c) 2018 FabLab Kannai
 //
-#ifndef BUTTON_H_INCLUDE
-#define BUTTON_H_INCLUDE
+#ifndef BUTTON_H
+#define BUTTON_H
 #include <Arduino.h>
 
 class Button {
@@ -12,6 +12,7 @@ class Button {
     static const unsigned long MULTI_MSEC      =  300;
     
     Button();
+    Button(byte pin, String name);
     void    init(byte pin, String name);
 
     boolean get();

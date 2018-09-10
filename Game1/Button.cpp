@@ -7,6 +7,10 @@
 Button::Button() {
 }
 
+Button::Button(byte pin, String name) {
+  init(pin, name);
+}
+
 // public methods
 void Button::init(byte pin, String name) {
   _pin          = pin;
@@ -43,7 +47,7 @@ boolean Button::get() {
       _long_pressed = false;
       _repeat = false;
     }
-    Serial.println(_name + ": " + String(_value) + ": " + String(_count) + ", " + String(_prev_pressed) + ", " + String(_press_start));
+//    Serial.println(_name + ": " + String(_value) + ": " + String(_count) + ", " + String(_prev_pressed) + ", " + String(_press_start));
     return true;
   }
 

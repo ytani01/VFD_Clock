@@ -1,7 +1,7 @@
 // VFD Clock Game1
 // (c) 2018 FabLab Kannai
 //
-String VersionStr = "01.00.01";
+String VersionStr = "01.00.02";
 #define DISP_VERSION_MSEC  2000  // msec
 
 #include <Wire.h>
@@ -95,10 +95,6 @@ void displayVersion() {
   Vfd.setBuf(3, VersionStr[4] - '0');
   Vfd.setBuf(4, VersionStr[6] - '0');
   Vfd.setBuf(5, VersionStr[7] - '0');
-
-  if ( blinkOff() ) {
-    Vfd.clearBuf();
-  }
 }
 
 void displayGame() {

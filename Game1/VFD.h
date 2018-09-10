@@ -7,7 +7,7 @@
 
 class VFD {
   public:
-    static const uint8_t DISP_DELAY = 1; // msec
+    static const uint8_t DISP_DELAY = 2; // msec
     static const uint8_t VAL_NUL    = 0xff;
 
     VFD();

@@ -27,16 +27,12 @@ String VersionStr = "04.01.01";
 #define PIN_BUTTON_MODE   3
 #define PIN_BUTTON_COUNT  4
 
-uint8_t PinSeg[] = {
-  6, 7, 8, 9, 10, 11, 12, A1
-};
-unsigned long SegN = sizeof(PinSeg) / sizeof(uint8_t);
+uint8_t PinSeg[] = { 6, 7, 8, 9, 10, 11, 12, A1 };
+uint8_t SegN = sizeof(PinSeg) / sizeof(uint8_t);
 
-uint8_t PinDigit[] = {
-  2, A0, 13, 5, A3, A2
-};
-unsigned long DigitN = sizeof(PinDigit) / sizeof(uint8_t);
-unsigned long DigitI = 0;
+uint8_t PinDigit[] = { 2, A0, 13, 5, A3, A2 };
+uint8_t DigitN = sizeof(PinDigit) / sizeof(uint8_t);
+uint8_t DigitI = 0;
 
 boolean Num0[] = {HIGH, HIGH, HIGH, HIGH, HIGH, HIGH, LOW };
 boolean Num1[] = {LOW , HIGH, HIGH, LOW , LOW , LOW , LOW };
@@ -53,28 +49,28 @@ boolean NumClr[] = {LOW , LOW , LOW , LOW , LOW , LOW , LOW }; // clear
 boolean *Num[] = {Num0, Num1, Num2, Num3, Num4, Num5, Num6, Num7, Num8, Num9, NumClr};
 #define NUM_CLR 10
 
-#define MODE_NORMAL       0x00
-#define MODE_SET_HOUR     0x01
-#define MODE_SET_MIN      0x02
-#define MODE_SET_SEC      0x03
-#define MODE_DATE         0x10
-#define MODE_SET_YEAR     0x11
-#define MODE_SET_MONTH    0x12
-#define MODE_SET_DAY      0x13
-#define MODE_DISP_VERSION 0x30
-#define MODE_ERROR        0xff
-
-#define DISP_DATE_MSEC    5000 // msec
-unsigned long   DateStart         = 0; // millis()
+#define MODE_NORMAL               0x00
+#define MODE_SET_HOUR             0x01
+#define MODE_SET_MIN              0x02
+#define MODE_SET_SEC              0x03
+#define MODE_DATE                 0x10
+#define MODE_SET_YEAR             0x11
+#define MODE_SET_MONTH            0x12
+#define MODE_SET_DAY              0x13
+#define MODE_DISP_VERSION         0x30
+#define MODE_ERROR                0xff
 uint8_t         Mode              = MODE_NORMAL;
+
+#define         DISP_DATE_MSEC    5000 // msec
+unsigned long   DateStart         = 0; // millis()
 boolean         enableBlinkEffect = true;
 
 RTC_DS1307  Rtc;
 DateTime CurTime;
 DateTime PrevTime;
-unsigned long MsecOffset = 0; // msec
-boolean FlagTimeUpdated     = false;
-volatile boolean AdjustFlag = false;
+unsigned long    MsecOffset      = 0; // msec
+boolean          FlagTimeUpdated = false;
+volatile boolean AdjustFlag      = false;
 
 struct button_t {
   unsigned int  pin;

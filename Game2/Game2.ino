@@ -1,8 +1,9 @@
 // VFD Clock Game2
-// (c) 2018 FabLab Kannai
+// (c) 2018 FaLab Kannai
 //
 String VersionStr = "01.00.00";
-#define DISP_VERSION_MSEC  2000  // msec
+
+#define DISP_VERSION_MSEC  3000  // msec
 
 #include <Wire.h>
 #include "RTClib.h"
@@ -10,18 +11,12 @@ String VersionStr = "01.00.00";
 #include "VFD.h"
 #include "Game2.h"
 
-#define BLINK_INTERVAL           500 // msec
-#define BLINK_ON_MSEC            350 // msec
-#define BUTTON_DEBOUNCE           10 // msec
-
 #define BULLET_INTERVAL          250 // msec
 #define ENEMY_INTERVAL          3000 // msec
 
 #define PIN_BUTTON_MODE   3
 #define PIN_BUTTON_SET    4
-
 uint8_t PinSeg[]     = { 6, 7, 8, 9, 10, 11, 12, A1 };
-
 uint8_t PinDigit[]   = { 2, A0, 13, 5, A3, A2 };
 
 #define MODE_DISP_VERSION         0x00
@@ -41,79 +36,71 @@ unsigned long Score = 0;
 RTC_DS1307 Rtc;
 //=========================================================
 ISR (PCINT2_vect) {
-  unsigned long cur_msec = millis();
+  unsigned long        cur_msec = millis();
+  static uint8_t       prev_pin;
   static unsigned long prev_msec = 0;
 
-  if ( cur_msec - prev_msec < BUTTON_DEBOUNCE ) {
+  if ( cur_msec - prev_msec < Button::DEBOUNCE ) {
     return;
   }
-  //  Serial.println("ISR()");
   prev_msec = cur_msec;
 
   if (ButtonMode.get()) {
+    ButtonMode.print();
     if ( ButtonMode.value() == LOW ) {
       P1.up();
-      //      Serial.println("P1: " + String(P1.val()));
     }
   }
   if (ButtonSet.get()) {
+    ButtonSet.print();
     if (ButtonSet.value() == LOW ) {
       P1.shoot(BULLET_INTERVAL);
-      //      Serial.println("P1: shoot: " + String(P1.bullet().val()));
     }
   }
 }
 //---------------------------------------------------------
-boolean blinkOff() {
-  if ( CurMsec % BLINK_INTERVAL > BLINK_ON_MSEC ) {
-    return true;
-  }
-  return false;
-}
-
 void displayVersion() {
   if ( CurMsec > DISP_VERSION_MSEC ) {
     Mode = MODE_PLAY;
+    Serial.println("MODE_PLAY");
     return;
   }
-  Vfd.setBuf(0, VersionStr[0] - '0', false);
-  Vfd.setBuf(1, VersionStr[1] - '0', true);
-  Vfd.setBuf(2, VersionStr[3] - '0', false);
-  Vfd.setBuf(3, VersionStr[4] - '0', true);
-  Vfd.setBuf(4, VersionStr[6] - '0', false);
-  Vfd.setBuf(5, VersionStr[7] - '0', false);
+  Vfd.set(0, VersionStr[0] - '0', false, true);
+  Vfd.set(1, VersionStr[1] - '0', true,  true);
+  Vfd.set(2, VersionStr[3] - '0', false, false);
+  Vfd.set(3, VersionStr[4] - '0', true,  false);
+  Vfd.set(4, VersionStr[6] - '0', false, false);
+  Vfd.set(5, VersionStr[7] - '0', false, false);
 }
 
 void displayGame() {
-  Vfd.clearBuf();
+  Vfd.clear();
+  if ( CurMsec > 5000 ) {
+    Mode = MODE_END;
+  }
 }
 
 void displayScore() {
-  Vfd.clearBuf();
-  if ( blinkOff() ) {
-    return;
-  }
+  boolean blink = false;
+  uint8_t v[] = {0xa, 0xb, VFD::VAL_NULL, VFD::VAL_NULL, 0xe, 0xf};
 
-  for (int i = 0; i < Vfd.digitN(); i++) {
-    Vfd.setBuf(i, Score / int(pow(10, 5 - i)) % 10, false);
+  if ( CurMsec % 4000 > 2000 ) {
+    blink = true;
   }
+  uint8_t v1 = (CurMsec / 10000) % 0x10;
+  uint8_t v2 = (CurMsec /  1000) % 0x10;
+  
+  Vfd.setValue(v);
+  Vfd.setValue(2, v1);
+  Vfd.setValue(3, v2);
+  Vfd.setDp(false);
+  Vfd.setDp(1, true);
+  Vfd.setDp(3, true);
+  Vfd.setDp(4, true);
+  Vfd.setDp(5, true);
+  Vfd.setBlink(blink);
 }
 
-void displayVFD() {
-  if ( Mode == MODE_DISP_VERSION ) {
-    displayVersion();
-  }
-
-  if ( Mode == MODE_PLAY ) {
-    displayGame();
-  }
-
-  if ( Mode == MODE_END ) {
-    displayScore();
-  }
-
-  Vfd.displayOne();
-}
 //=========================================================
 void setup() {
   Serial.begin(115200);
@@ -127,7 +114,8 @@ void setup() {
   Serial.println("sec = " + String(sec));
   randomSeed(sec);
 
-  Vfd.init(PinSeg, sizeof(PinSeg) / sizeof(PinSeg[0]), PinDigit, sizeof(PinDigit) / sizeof(PinDigit[0]));
+  size_t digit_n = sizeof(PinDigit) / sizeof(PinDigit[0]);
+  Vfd.init(PinSeg, PinDigit, digit_n);
   ButtonMode.init(PIN_BUTTON_MODE, "[MODE]");
   ButtonSet.init(PIN_BUTTON_SET,   "[SET]");
 
@@ -135,31 +123,27 @@ void setup() {
   Score = 0;
 
   Mode = MODE_DISP_VERSION;
-  Serial.println("Vfd.digitN() = " + String(Vfd.digitN()));
   sei();
 }
 
 void loop() {
   CurMsec = millis();
 
+  // Button Check
   if (ButtonMode.get()) {
-    Serial.println(ButtonMode.name() + ": " + String(ButtonMode.count()) + ", " + String(ButtonMode.long_pressed()) + ", " + String(ButtonMode.repeat()));
+    ButtonMode.print();
     if ( ButtonMode.long_pressed() || ButtonMode.repeat() ) {
     }
   }
   if (ButtonSet.get()) {
+    ButtonSet.print();
     if ( ButtonSet.long_pressed() || ButtonSet.repeat() ) {
     }
   }
 
-  // move
+  // Move
   if ( P1.bullet_move() ) {
 
-  }
-  if ( E1.generate() ) {
-    if ( E1.x() == 0 ) {
-      Mode = MODE_END;
-    }
   }
 
   // check and update()
@@ -179,5 +163,19 @@ void loop() {
     }
   }
 
-  displayVFD();
+  // Display
+  switch ( Mode ) {
+  case MODE_DISP_VERSION:
+    displayVersion();
+    break;
+  case MODE_PLAY:
+    displayGame();
+    break;
+  case MODE_END:
+    displayScore();
+    break;
+  default:
+    break;
+  }
+  Vfd.display();
 }

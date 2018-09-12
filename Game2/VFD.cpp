@@ -140,16 +140,20 @@ void VFD::displayOne() {
   digitalWrite(_pin_digit[_digitI], LOW);
 }
 
-void VFD::display() {
+void VFD::display(boolean blink_sw)
+{
   if ( _digitI == 0 ) {
     _cur_msec = millis();
   }
   _digitI = ( _digitI + 1 ) % _digitN;
   
-  if ( _bl[_digitI] && blinkOff() ) {
+  if ( blink_sw && _bl[_digitI] && blinkOff() ) {
     return;
   }
   displayOne();
 }
-
+void VFD::display()
+{
+  display(true);
+}
 // Private methods

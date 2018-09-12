@@ -67,6 +67,7 @@ class VFD {
 
     boolean blinkOff();
     void displayOne();
+    void display(boolean blink_sw);
     void display();
 
   private:

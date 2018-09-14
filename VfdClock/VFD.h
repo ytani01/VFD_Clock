@@ -42,8 +42,8 @@ class VFD {
     VFD();
     void init(uint8_t pin_seg[], uint8_t pin_digit[], size_t digitN);
 
-    size_t  digitN();
-    uint8_t digitI();
+    size_t digitN();
+    size_t digitI();
 
     void clear();
     void clear(uint8_t idx);
@@ -77,7 +77,7 @@ class VFD {
 
     uint8_t *_pin_digit;
     size_t  _digitN;
-    uint8_t _digitI = 0;
+    size_t  _digitI = 0;
 
     uint8_t *_val;
 

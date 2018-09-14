@@ -3,24 +3,48 @@
 //
 #include "Button.h"
 
-unsigned long Button::ButtonN = 0;
+static unsigned long	Button::ButtonN = 0;
+//static Button		**Button::Btn[] = new Button*[10];
+
+// static methods
+static void Button::interruptHandler()
+{
+  unsigned long		cur_msec = millis();
+  static uint8_t	prev_pin;
+  static unsigned long	prev_msec = 0;
+
+  if ( cur_msec - prev_msec < DEBOUNCE ) {
+    return;
+  }
+  prev_msec = cur_msec;
+
+  for (int i=0; i < ButtonN; i++) {
+    //
+    // 
+    //
+  }
+}
 
 // Constractor
 Button::Button()
 {
+  _id = ButtonN;
+  //  Btn[ButtonN] = this;
+  ButtonN++;
 }
 
 Button::Button(byte pin, String name)
 {
+  _id = ButtonN;
+  //  Btn[ButtonN] = this;
+  ButtonN++;
   init(pin, name);
 }
 
 // public methods
 void Button::init(byte pin, String name)
 {
-  ButtonN++;
   //  Serial.println(ButtonN);
-  
   _pin          = pin;
   _name         = name;
 
@@ -42,7 +66,8 @@ void Button::init(byte pin, String name)
 boolean Button::get()
 {
   unsigned long cur_msec = millis();
-
+  boolean 	ret = false;
+  
   if ( ! _is_enabled ) {
     return false;
   }
@@ -52,8 +77,13 @@ boolean Button::get()
   _prev_value = _value;
   _value = digitalRead(_pin);
 
-  if ( cur_msec - _first_press_start > MULTI_MSEC ) {
-    _count = 0;
+  _multi_count = 0;
+  if ( _count > 0 ){
+    if ( cur_msec - _first_press_start > MULTI_MSEC ) {
+      _multi_count = _count;
+      _count = 0;
+      ret = true;
+    }
   }
 
   if ( _value == HIGH ) {
@@ -61,12 +91,16 @@ boolean Button::get()
     _press_start = 0;
     _long_pressed = false;
     _repeat = false;
-    
-    return false;
+
+    if ( _value != _prev_value ) {
+      return true;
+    }
+    return ret;
   }
 
   // LOW
   if ( _value != _prev_value ) {
+    
     // Pushed now !
     _press_start = cur_msec;
     _count++;
@@ -83,7 +117,7 @@ boolean Button::get()
       _press_start = cur_msec;
       return true;
     } else {
-      return false;
+      return ret;
     }
   }
 
@@ -93,7 +127,7 @@ boolean Button::get()
     return true;
   }
 
-  return false;
+  return ret;
 }
 
 void Button::enable()
@@ -130,6 +164,10 @@ boolean Button::repeat()
 {
   return _repeat;
 }
+uint8_t Button::multi_count()
+{
+  return _multi_count;
+}
 
 void Button::print()
 {
@@ -140,6 +178,7 @@ void Button::print()
     Serial.print(":*");
   }
   Serial.print(" " + String(_count));
+  Serial.print(" " + String(_multi_count));
   if ( _long_pressed ) {
     Serial.print(" L");
   } else {

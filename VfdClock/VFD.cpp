@@ -35,7 +35,7 @@ void VFD::init(uint8_t pin_seg[], uint8_t pin_digit[], size_t digitN) {
 size_t VFD::digitN() {
   return _digitN;
 }
-uint8_t VFD::digitI() {
+size_t VFD::digitI() {
   return _digitI;
 }
 
@@ -129,15 +129,11 @@ boolean VFD::blinkOff() {
 }
 
 void VFD::displayOne() {
-  if ( _val[_digitI] != VAL_NULL ) {
-    for (int i = 0; i < SEG_N - 1; i++) {
-      digitalWrite(_pin_seg[i], VAL[_val[_digitI]][i]);
-    }
-    digitalWrite(_pin_seg[SEG_N - 1], _dp[_digitI]);
-    digitalWrite(_pin_digit[_digitI], HIGH);
+  for (int i = 0; i < SEG_N - 1; i++) {
+    digitalWrite(_pin_seg[i], VAL[_val[_digitI]][i]);
   }
-  delay(DISP_DELAY);
-  digitalWrite(_pin_digit[_digitI], LOW);
+  digitalWrite(_pin_seg[SEG_N - 1], _dp[_digitI]);
+  digitalWrite(_pin_digit[_digitI], HIGH);
 }
 
 void VFD::display(boolean blink_sw)
@@ -145,12 +141,16 @@ void VFD::display(boolean blink_sw)
   if ( _digitI == 0 ) {
     _cur_msec = millis();
   }
+
+  digitalWrite(_pin_digit[_digitI], LOW);
   _digitI = ( _digitI + 1 ) % _digitN;
   
-  if ( blink_sw && _bl[_digitI] && blinkOff() ) {
-    return;
+  if ( _val[_digitI] != VAL_NULL ) {
+    if ( ! (blink_sw && _bl[_digitI] && blinkOff()) ) {
+      displayOne();
+    }
   }
-  displayOne();
+  delay(DISP_DELAY);
 }
 void VFD::display()
 {

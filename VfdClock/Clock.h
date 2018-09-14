@@ -33,12 +33,14 @@ class Clock {
   void		set_mode(mode_t mode);
   
   DateTime	cur_dt();
+  String	dateStr();
   
   boolean	adjust_flag();
   void		set_adjust_flag(boolean flag);
 
   boolean	update();
-  boolean	adjust();
+  void		adjust();
+  boolean	adjustIfNecessary();
 
   void		countUpYear();
   void		countUpMonth();
@@ -62,7 +64,6 @@ class Clock {
   VFD		*_vfd;
   
   mode_t	_mode		= MODE_DISP_TIME;
-  unsigned long _date_start 	= 0; // msec
   boolean	_adjust_flag	= false;
 
   DateTime	_cur_dt;

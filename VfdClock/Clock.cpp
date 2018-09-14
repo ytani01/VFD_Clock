@@ -31,6 +31,17 @@ DateTime Clock::cur_dt()
 {
   return _cur_dt;
 }
+String Clock::dateStr()
+{
+  String YYYY = String(_cur_dt.year());
+  String MM   = String(_cur_dt.month()+100).substring(1);
+  String DD   = String(_cur_dt.day()+100).substring(1);
+  String hh   = String(_cur_dt.hour()+100).substring(1);
+  String mm   = String(_cur_dt.minute()+100).substring(1);
+  String ss   = String(_cur_dt.second()+100).substring(1);
+  String ms   = String(_msec_offset + 1000).substring(1);
+  return YYYY + "/" + MM + "/" + DD + " " + hh + ":" + mm + ":" + ss + "." + ms;
+}
 
 boolean Clock::adjust_flag()
 {
@@ -65,11 +76,19 @@ boolean Clock::update()
   return flag_changed;
 }
 
-boolean Clock::adjust()
+void Clock::adjust() {
+    _msec_offset = millis() % 1000;
+    _rtc->adjust(_cur_dt);
+}
+
+boolean Clock::adjustIfNecessary()
 {
-  _msec_offset = millis() % 1000;
-  _rtc->adjust(_cur_dt);
-  return true;
+  if ( _adjust_flag ) {
+    adjust();
+    _adjust_flag = false;
+    return true;
+  }
+  return false;
 }
 
 void Clock::countUpYear()
@@ -152,9 +171,9 @@ void Clock::countUpSecond()
 void Clock::setVfd(unsigned long num1, unsigned long num2, unsigned long num3)
 {
   _vfd->set(0, (num1 % 100) / 10, false, false);
-  _vfd->set(1, (num1 % 100) % 10, true,  false);
+  _vfd->set(1, (num1 % 100) % 10, false, false);
   _vfd->set(2, (num2 % 100) / 10, false, false);
-  _vfd->set(3, (num2 % 100) % 10, true,  false);
+  _vfd->set(3, (num2 % 100) % 10, false, false);
   _vfd->set(4, (num3 % 100) / 10, false, false);
   _vfd->set(5, (num3 % 100) % 10, false, false);
 }
@@ -164,6 +183,11 @@ void Clock::setVfdDate() {
 }
 void Clock::setVfdTime() {
   setVfd(_cur_dt.hour(), _cur_dt.minute(), _cur_dt.second());
+  if ( _cur_dt.hour() < 10 ) {
+    _vfd->setValue(0, VFD::VAL_NULL);
+  }
+  _vfd->setDp(1, true);
+  _vfd->setDp(3, true);
 }
 
 void Clock::displayDate()
@@ -175,6 +199,27 @@ void Clock::displayTime()
 {
   update();
   setVfdTime();
+
+  if ( _cur_dt.second() % 10 == 0 ) {
+    _vfd->setBlink(5, true);
+    _vfd->setBlink(4, true);
+    if ( _cur_dt.second() == 0 ) {
+      _vfd->setBlink(3, true);
+      if ( _cur_dt.minute() % 10 == 0 ) {
+	_vfd->setBlink(2, true);
+	if ( _cur_dt.minute() == 0 ) {
+	  _vfd->setBlink(1, true);
+	  if ( _cur_dt.hour() % 10 == 0 ) {
+	    _vfd->setBlink(0, true);
+	  }
+	}
+      }
+    }
+  }
+  if ( _cur_dt.second() >= 57 ) {
+    _vfd->setBlink(4, true);
+    _vfd->setBlink(5, true);
+  }
 }
 void Clock::displaySetDate()
 {

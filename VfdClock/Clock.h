@@ -22,7 +22,7 @@ class Clock {
   static const mode_t MODE_SET_TIME_HOUR	= 0x41;
   static const mode_t MODE_SET_TIME_MINUTE	= 0x42;
   static const mode_t MODE_SET_TIME_SECOND	= 0x43;
-  static const mode_t MODE_ERR			= 0xf0;
+  static const mode_t MODE_ERR			= 0x80;
 
 
   Clock();

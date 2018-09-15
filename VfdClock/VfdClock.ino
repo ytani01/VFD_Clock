@@ -1,7 +1,7 @@
 // VFD Clock
 // (c) 2018 FaLab Kannai
 //
-String VersionStr = "05.00.01";
+String VersionStr = "05.01.00";
 
 #define STARTUP_MSEC    3000 // msec
 #define DISP_DATE_MSEC  5000 // msec
@@ -175,8 +175,10 @@ void button1LoopHandler(unsigned long cur_msec)
 
   // MODE_CLOCK
   if ( Btn[1].multi_count() >= 2 ) { // double click
-    Mode = MODE_STARTUP;
-    StartUpStart = cur_msec;
+    if ( Clock1.mode() == Clock::MODE_DISP_DATE || Clock1.mode() == Clock::MODE_DISP_TIME ) {
+      Mode = MODE_STARTUP;
+      StartUpStart = cur_msec;
+    }
     return;
   }
   

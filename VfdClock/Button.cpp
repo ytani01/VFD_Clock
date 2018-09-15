@@ -3,11 +3,13 @@
 //
 #include "Button.h"
 
-static unsigned long	Button::ButtonN = 0;
-//static Button		**Button::Btn[] = new Button*[10];
+static unsigned long	Button::Num = 0;
+static Button		**Button::BTN = new Button*[10];
 
 // static methods
-static void Button::interruptHandler()
+// XXX
+static void
+Button::interruptHandler()
 {
   unsigned long		cur_msec = millis();
   static uint8_t	prev_pin;
@@ -18,33 +20,23 @@ static void Button::interruptHandler()
   }
   prev_msec = cur_msec;
 
-  for (int i=0; i < ButtonN; i++) {
-    //
-    // 
-    //
+  for (int i=0; i < Num; i++) {
+    //Serial.println(String(i) + ":" + BTN[i]->name());
   }
 }
 
 // Constractor
 Button::Button()
 {
-  _id = ButtonN;
-  //  Btn[ButtonN] = this;
-  ButtonN++;
-}
+  BTN[Num] = this;
+  _id = Num;
+  Num++;
 
-Button::Button(byte pin, String name)
-{
-  _id = ButtonN;
-  //  Btn[ButtonN] = this;
-  ButtonN++;
-  init(pin, name);
 }
 
 // public methods
 void Button::init(byte pin, String name)
 {
-  //  Serial.println(ButtonN);
   _pin          = pin;
   _name         = name;
 

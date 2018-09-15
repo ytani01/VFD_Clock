@@ -1,7 +1,7 @@
 // VFD Clock
 // (c) 2018 FaLab Kannai
 //
-String VersionStr = "05.01.00";
+String VersionStr = "05.01.01";
 
 #define STARTUP_MSEC    3000 // msec
 #define DISP_DATE_MSEC  5000 // msec
@@ -141,6 +141,8 @@ ISR (PCINT2_vect)
   static uint8_t       prev_pin;
   static unsigned long prev_msec = 0;
 
+  //XXX Button::interruptHandler();
+
   if ( cur_msec - prev_msec < Button::DEBOUNCE ) {
     return;
   }
@@ -260,6 +262,9 @@ void setup() {
   Btn = new Button[BUTTON_N];
   Btn[0].init(PIN_BUTTON_MODE, "[MODE]");
   Btn[1].init(PIN_BUTTON_SET,   "[SET]");
+  for (int i=0; i < Button::Num; i++) {
+    Serial.println(Button::BTN[i]->name());
+  }
   Clock1.init(&Rtc, &Vfd);
 
   sei();

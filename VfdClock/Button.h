@@ -22,15 +22,16 @@ class Button {
   static const button_event_t EVENT_LONG_PRESSED 	= 0x02;
   static const button_event_t EVENT_REPEAT		= 0x03;
 
-  static unsigned long	ButtonN;
-  //  static Button		**Btn;
+  static unsigned long	Num;
+  static Button		**BTN;
 
   static void 		interruptHandler();
+  static void 		loopHandler();
 
-  // Constractor
   Button();
   Button(byte pin, String name);
-  void    init(byte pin, String name);
+
+  void    	init(byte pin, String name);
 
   boolean	get();
 

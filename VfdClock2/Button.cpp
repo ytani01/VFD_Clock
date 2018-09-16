@@ -4,39 +4,19 @@
 #include "Button.h"
 
 static unsigned long	Button::Num = 0;
-static Button		**Button::BTN = new Button*[10];
+static Button		*Button::Obj[Button::NUM_MAX];
 
-// static methods
-// XXX
-static void
-Button::interruptHandler()
-{
-  unsigned long		cur_msec = millis();
-  static uint8_t	prev_pin;
-  static unsigned long	prev_msec = 0;
-
-  if ( cur_msec - prev_msec < DEBOUNCE ) {
-    return;
-  }
-  prev_msec = cur_msec;
-
-  for (int i=0; i < Num; i++) {
-    //Serial.println(String(i) + ":" + BTN[i]->name());
-  }
-}
 
 // Constractor
 Button::Button()
 {
-  BTN[Num] = this;
-  _id = Num;
-  Num++;
-
 }
 
 // public methods
 void Button::init(byte pin, String name)
 {
+  _id=Num++;
+  Obj[_id] 	= this;
   _pin          = pin;
   _name         = name;
 
@@ -45,6 +25,7 @@ void Button::init(byte pin, String name)
   _press_start  = 0;
   _first_press_start = 0;
   _count        = 0;
+  _multi_count	= 0;
   _long_pressed = false;
   _repeat       = false;
 
@@ -144,9 +125,13 @@ boolean Button::value()
 {
   return _value;
 }
-byte Button::count()
+count_t Button::count()
 {
   return _count;
+}
+count_t Button::multi_count()
+{
+  return _multi_count;
 }
 boolean Button::long_pressed()
 {
@@ -156,32 +141,22 @@ boolean Button::repeat()
 {
   return _repeat;
 }
-uint8_t Button::multi_count()
-{
-  return _multi_count;
-}
 
-void Button::print()
+void Button::print() {
+  print(false);
+}
+void Button::print(boolean interrupt)
 {
-  Serial.print(_name);
-  if ( _value ) {
-    Serial.print(":-");
-  } else {
-    Serial.print(":*");
-  }
-  Serial.print(" " + String(_count));
-  Serial.print(" " + String(_multi_count));
-  if ( _long_pressed ) {
-    Serial.print(" L");
-  } else {
-    Serial.print(" -");
-  }
-  if ( _repeat ) {
-    Serial.print(" R");
-  } else {
-    Serial.print(" -");
-  }
-  Serial.println();
+  String str = interrupt ? "!" : " ";
+  
+  str += _value        ? " "  : "*";
+  str += _name + " ";
+  str += String(_count) + " ";
+  str += String(_multi_count) + " ";
+  str += _long_pressed ? "L " : "- ";
+  str += _repeat       ? "R"  : "-";
+
+  Serial.println(str);
 }
 
 // private methods

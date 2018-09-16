@@ -1,10 +1,7 @@
 // VFD Clock
 // (c) 2018 FaLab Kannai
 //
-String VersionStr = "05.01.01";
-
-#define STARTUP_MSEC    3000 // msec
-#define DISP_DATE_MSEC  5000 // msec
+static String	VersionStr	= "05.01.02";
 
 #include <Wire.h>
 #include "RTClib.h"
@@ -12,28 +9,43 @@ String VersionStr = "05.01.01";
 #include "VFD.h"
 #include "Clock.h"
 
-#define PIN_BUTTON_MODE	3
-#define PIN_BUTTON_SET	4
-uint8_t PinSeg[]     	= { 6, 7, 8, 9, 10, 11, 12, A1 };
-uint8_t PinDigit[]   	= { 2, A0, 13, 5, A3, A2 };
+#define 	STARTUP_MSEC    3000 // msec
+#define 	DISP_DATE_MSEC  5000 // msec
 
-#define	MODE_STARTUP	0x00
-#define MODE_CLOCK	0x01
-uint8_t Mode = MODE_STARTUP;
+#define 	PIN_BUTTON_MODE	3
+#define 	PIN_BUTTON_SET	4
+uint8_t		PinSeg[]     	= { 6, 7, 8, 9, 10, 11, 12, A1 };
+uint8_t		PinDigit[]   	= { 2, A0, 13, 5, A3, A2 };
+
+#define		MODE_STARTUP	0x00
+#define		MODE_CLOCK	0x01
+uint8_t		Mode 		= MODE_STARTUP;
 
 RTC_DS1307	Rtc;
 VFD		Vfd;
 Clock		Clock1;
 Button		*Btn;
-#define 	BUTTON_N 2
+#define 	BUTTON_N 	2
 
-unsigned long	CurMsec  = 0;
-unsigned long	PrevMsec = 0;
-unsigned long	StartUpStart = 0;
-unsigned long	DateStart = 0;
-boolean 	BlinkEnable = true;
+unsigned long	CurMsec		= 0;
+unsigned long	PrevMsec	= 0;
+unsigned long	StartUpStart	= 0;
+unsigned long	DateStart	= 0;
+boolean 	BlinkEnable	= true;
 
 //=========================================================
+void displayVersion()
+{
+  Vfd.set(0, VersionStr[0] - '0', false, true);
+  Vfd.set(1, VersionStr[1] - '0', true,  true);
+  Vfd.set(2, VersionStr[3] - '0', false, true);
+  Vfd.set(3, VersionStr[4] - '0', true,  true);
+  Vfd.set(4, VersionStr[6] - '0', false, true);
+  Vfd.set(5, VersionStr[7] - '0', false, true);
+
+  Vfd.display();
+}
+//---------------------------------------------------------
 // [MODE] interrupt
 void button0IntrHandler(unsigned long cur_msec)
 {
@@ -75,6 +87,8 @@ void button0IntrHandler(unsigned long cur_msec)
     Clock1.set_adjust_flag(true);
     Clock1.set_mode(Clock::MODE_DISP_TIME);
     break;
+  default:
+    break;
   } // switch ( Clock1.mode() )
 }
 //---------------------------------------------------------
@@ -111,48 +125,13 @@ void button1IntrHandler(unsigned long cur_msec)
   case Clock::MODE_SET_TIME_SECOND:
     Clock1.countUpSecond();
     break;
+  default:
+    break;
   } // switch ( Clock1.mode() )
 }
 //---------------------------------------------------------
-// button interrupt
-void buttonIntrHandler(unsigned long cur_msec)
-{
-  for (int btn_num = 0; btn_num < BUTTON_N; btn_num++) {
-    if ( Btn[btn_num].get() ) {
-      Btn[btn_num].print();
-
-      switch ( btn_num ) {
-      case 0:
-	button0IntrHandler(cur_msec);
-	break;
-      case 1:
-	button1IntrHandler(cur_msec);
-	break;
-      default:
-	break;
-      } // switch
-    }
-  } // for
-}
-//---------------------------------------------------------
-ISR (PCINT2_vect)
-{
-  unsigned long        cur_msec = millis();
-  static uint8_t       prev_pin;
-  static unsigned long prev_msec = 0;
-
-  //XXX Button::interruptHandler();
-
-  if ( cur_msec - prev_msec < Button::DEBOUNCE ) {
-    return;
-  }
-  prev_msec = cur_msec;
-
-  buttonIntrHandler(cur_msec);
-}
-//---------------------------------------------------------
 // [MODE] event in loop()
-void button0LoopHandler(unsigned long cur_msec)
+void button0LoopHandler()
 {
   if ( Mode == MODE_STARTUP ) {
     return;
@@ -169,7 +148,7 @@ void button0LoopHandler(unsigned long cur_msec)
 }
 //---------------------------------------------------------
 // [SET] event in loop()
-void button1LoopHandler(unsigned long cur_msec)
+void button1LoopHandler()
 {
   if ( Mode == MODE_STARTUP ) {
     return;
@@ -179,7 +158,7 @@ void button1LoopHandler(unsigned long cur_msec)
   if ( Btn[1].multi_count() >= 2 ) { // double click
     if ( Clock1.mode() == Clock::MODE_DISP_DATE || Clock1.mode() == Clock::MODE_DISP_TIME ) {
       Mode = MODE_STARTUP;
-      StartUpStart = cur_msec;
+      StartUpStart = CurMsec;
     }
     return;
   }
@@ -213,7 +192,7 @@ void button1LoopHandler(unsigned long cur_msec)
   }
 }
 //---------------------------------------------------------
-void buttonLoopHandler(unsigned long cur_msec)
+void buttonLoopHandler()
 {
   for (int btn_num = 0; btn_num < BUTTON_N; btn_num++) {
     if ( Btn[btn_num].get() ) {
@@ -221,10 +200,10 @@ void buttonLoopHandler(unsigned long cur_msec)
 
       switch ( btn_num ) {
       case 0:
-	button0LoopHandler(cur_msec);
+	button0LoopHandler();
 	break;
       case 1:
-	button1LoopHandler(cur_msec);
+	button1LoopHandler();
 	break;
       default:
 	break;
@@ -232,20 +211,45 @@ void buttonLoopHandler(unsigned long cur_msec)
     } // if
   } // for
 }
+
 //---------------------------------------------------------
-void displayVersion() {
-  Vfd.set(0, VersionStr[0] - '0', false, true);
-  Vfd.set(1, VersionStr[1] - '0', true,  true);
-  Vfd.set(2, VersionStr[3] - '0', false, true);
-  Vfd.set(3, VersionStr[4] - '0', true,  true);
-  Vfd.set(4, VersionStr[6] - '0', false, true);
-  Vfd.set(5, VersionStr[7] - '0', false, true);
+// button interrupt
+void buttonIntrHandler(unsigned long cur_msec)
+{
+  for (int btn_num = 0; btn_num < BUTTON_N; btn_num++) {
+    if ( Btn[btn_num].get() ) {
+      Btn[btn_num].print(true);
 
-  Vfd.display();
+      switch ( btn_num ) {
+      case 0:
+	button0IntrHandler(cur_msec);
+	break;
+      case 1:
+	button1IntrHandler(cur_msec);
+	break;
+      default:
+	break;
+      } // switch
+    }
+  } // for
 }
+//---------------------------------------------------------
+ISR (PCINT2_vect)
+{
+  static uint8_t       prev_pin;
+  static unsigned long prev_msec = 0;
+  unsigned long        cur_msec = millis();
 
+  if ( cur_msec - prev_msec < Button::DEBOUNCE ) {
+    return;
+  }
+  prev_msec = cur_msec;
+
+  buttonIntrHandler(cur_msec);
+}
 //=========================================================
-void setup() {
+void setup()
+{
   Serial.begin(115200);
 
   while (!Serial) {} // for Leonardo
@@ -261,20 +265,22 @@ void setup() {
   Vfd.init(PinSeg, PinDigit, digit_n);
   Btn = new Button[BUTTON_N];
   Btn[0].init(PIN_BUTTON_MODE, "[MODE]");
-  Btn[1].init(PIN_BUTTON_SET,   "[SET]");
+  Btn[1].init(PIN_BUTTON_SET,  "[SET] ");
+  Serial.println(Button::Num);
   for (int i=0; i < Button::Num; i++) {
-    Serial.println(Button::BTN[i]->name());
+    Button::Obj[i]->print();
   }
   Clock1.init(&Rtc, &Vfd);
 
   sei();
 }
 //=========================================================
-void loop() {
+void loop()
+{
   CurMsec = millis();
 
   // Button Handler
-  buttonLoopHandler(CurMsec);
+  buttonLoopHandler();
 
   // Adjust clock
   if ( Clock1.adjustIfNecessary() ) {
@@ -288,14 +294,18 @@ void loop() {
       Mode = MODE_CLOCK;
     }
   case MODE_CLOCK:
-    if ( Clock1.mode() == Clock::MODE_DISP_DATE ) {
+    switch ( Clock1.mode() ) {
+    case Clock::MODE_DISP_DATE:
       if ( CurMsec - DateStart > DISP_DATE_MSEC ) {
 	Clock1.set_mode(Clock::MODE_DISP_TIME);
       }
-    }
+      break;
+    default:
+      break;
+    } // switch ( Clock1.mode() )
   default:
     break;
-  }
+  } // switch ( Mode )
 
   // Display
   switch ( Mode ) {

@@ -1,15 +1,16 @@
 // VFD Clock
 // (c) 2018 FaLab Kannai
 //
-static String	VersionStr	= "05.01.03";
+static String	VersionStr	= "06.00.01";
 
 #include <Wire.h>
 #include "RTClib.h"
 #include "Button.h"
 #include "VFD.h"
 #include "Clock.h"
+#include "Game1.h"
 
-#define 	STARTUP_MSEC    3000 // msec
+#define 	VERSION_MSEC    3000 // msec
 #define 	DISP_DATE_MSEC  5000 // msec
 
 #define 	PIN_BUTTON_MODE	3
@@ -17,22 +18,36 @@ static String	VersionStr	= "05.01.03";
 uint8_t		PinSeg[]     	= { 6, 7, 8, 9, 10, 11, 12, A1 };
 uint8_t		PinDigit[]   	= { 2, A0, 13, 5, A3, A2 };
 
-#define		MODE_STARTUP	0x00
+#define		MODE_VERSION	0x00
 #define		MODE_CLOCK	0x01
-uint8_t		Mode 		= MODE_STARTUP;
+#define		MODE_GAME1	0x02
+uint8_t		Mode 		= MODE_VERSION;
 
 RTC_DS1307	Rtc;
 VFD		Vfd;
-Clock		Clock1;
+Clock		Cl1;
+Game1		Gm1;
 Button		*Btn;
 #define 	BUTTON_N 	2
 
 unsigned long	CurMsec		= 0;
 unsigned long	PrevMsec	= 0;
-unsigned long	StartUpStart	= 0;
+unsigned long	VersionStart	= 0;
 unsigned long	DateStart	= 0;
 boolean 	BlinkEnable	= true;
 
+//=========================================================
+void startVersion()
+{
+  VersionStart = CurMsec;
+  Mode = MODE_VERSION;
+}
+//=========================================================
+void startGame1()
+{
+  Gm1.init(&Vfd);
+  Mode = MODE_GAME1;
+}
 //=========================================================
 void displayVersion()
 {
@@ -45,180 +60,300 @@ void displayVersion()
 
   Vfd.display();
 }
+//== MODE_VERSION =========================================
+void versionBtn0_IntrHandler(unsigned long cur_msec)
+{
+}
 //---------------------------------------------------------
+void versionBtn1_IntrHandler(unsigned long cur_msec)
+{
+}
+//---------------------------------------------------------
+void versionBtn0_LoopHandler()
+{
+  if ( Btn[0].multi_count() >= 1 ) {
+    Mode = MODE_CLOCK;
+  }
+}
+//---------------------------------------------------------
+void versionBtn1_LoopHandler()
+{
+}
+//== MODE_CLOCK ===========================================
+void clockBtn0_IntrHandler(unsigned long cur_msec)
+{
+  switch ( Cl1.mode() ) {
+  case Clock::MODE_SET_DATE_YEAR:
+    Cl1.set_mode(Clock::MODE_SET_DATE_MONTH);
+    break;
+  case Clock::MODE_SET_DATE_MONTH:
+    Cl1.set_mode(Clock::MODE_SET_DATE_DAY);
+    break;
+  case Clock::MODE_SET_DATE_DAY:
+    Cl1.set_mode(Clock::MODE_SET_TIME_HOUR);
+    break;
+  case Clock::MODE_SET_TIME_HOUR:
+    Cl1.set_mode(Clock::MODE_SET_TIME_MINUTE);
+    break;
+  case Clock::MODE_SET_TIME_MINUTE:
+    Cl1.set_mode(Clock::MODE_SET_TIME_SECOND);
+    break;
+  case Clock::MODE_SET_TIME_SECOND:
+    Cl1.set_adjust_flag(true);
+    Cl1.set_mode(Clock::MODE_DISP_TIME);
+    break;
+  default:
+    break;
+  } // switch ( Cl1.mode() )
+}
+//---------------------------------------------------------
+void clockBtn1_IntrHandler(unsigned long cur_msec)
+{
+  switch ( Cl1.mode() ) {
+  case Clock::MODE_SET_DATE_YEAR:
+    Cl1.countUpYear();
+    break;
+  case Clock::MODE_SET_DATE_MONTH:
+    Cl1.countUpMonth();
+    break;
+  case Clock::MODE_SET_DATE_DAY:
+    Cl1.countUpDay();
+    break;
+  case Clock::MODE_SET_TIME_HOUR:
+    Cl1.countUpHour();
+    break;
+  case Clock::MODE_SET_TIME_MINUTE:
+    Cl1.countUpMinute();
+    break;
+  case Clock::MODE_SET_TIME_SECOND:
+    Cl1.countUpSecond();
+    break;
+  default:
+    break;
+  } // switch ( Cl1.mode() )
+}
+//---------------------------------------------------------
+void clockBtn0_LoopHandler()
+{
+  switch ( Cl1.mode() ) {
+  case Clock::MODE_DISP_TIME:
+    if ( Btn[0].multi_count() >= 1 ) {
+      Cl1.set_mode(Clock::MODE_DISP_DATE);
+      DateStart = CurMsec;
+      return;
+    }
+    if ( Btn[0].long_pressed() || Btn[0].repeat() ) {
+      Cl1.set_mode(Clock::MODE_SET_DATE_YEAR);
+      return;
+    }
+    break;
+  case Clock::MODE_DISP_DATE:
+    if ( Btn[0].multi_count() >= 1 ) {
+      Cl1.set_mode(Clock::MODE_DISP_TIME);
+      return;
+    }
+    if ( Btn[0].long_pressed() || Btn[0].repeat() ) {
+      Cl1.set_mode(Clock::MODE_SET_DATE_YEAR);
+      return;
+    }
+    break;
+  default:
+    break;
+  } // switch ( Cl1.mode() )
+}
+//---------------------------------------------------------
+void clockBtn1_LoopHandler()
+{
+  switch ( Cl1.mode() ) {
+  case Clock::MODE_DISP_DATE:
+  case Clock::MODE_DISP_TIME:
+    if ( Btn[1].multi_count() >= 2 )  {
+      startGame1();
+      return;
+    }
+    break;
+  default:
+    if ( Btn[1].long_pressed() || Btn[1].repeat() ) {
+      // single click, long pressed, repeat
+      BlinkEnable = false;
+      switch ( Cl1.mode() ) {
+      case Clock::MODE_SET_DATE_YEAR:
+	Cl1.countUpYear();
+	break;
+      case Clock::MODE_SET_DATE_MONTH:
+	Cl1.countUpMonth();
+	break;
+      case Clock::MODE_SET_DATE_DAY:
+	Cl1.countUpDay();
+	break;
+      case Clock::MODE_SET_TIME_HOUR:
+	Cl1.countUpHour();
+	break;
+      case Clock::MODE_SET_TIME_MINUTE:
+	Cl1.countUpMinute();
+	break;
+      case Clock::MODE_SET_TIME_SECOND:
+	Cl1.countUpSecond();
+	break;
+      } // switch
+    } else {
+      if ( ! BlinkEnable ) {
+	BlinkEnable = true;
+      }
+    }
+    break;
+  } // switch ( Cl1.mode() )
+}
+//== MODE_GAME1 ===========================================
+void game1Btn0_IntrHandler(unsigned long cur_msec)
+{
+  switch ( Gm1.mode() ) {
+  case Game1::MODE_PLAY:
+    Gm1.p1()->up();
+    break;
+  case Game1::MODE_END:
+  default:
+    break;
+  } // switch 
+}
+//---------------------------------------------------------
+void game1Btn1_IntrHandler(unsigned long cur_msec)
+{
+  switch ( Gm1.mode() ) {
+  case Game1::MODE_PLAY:
+    Gm1.p1()->shoot(Game1::BULLET_INTERVAL);
+    break;
+  case Game1::MODE_END:
+  default:
+    break;
+  } // switch ( Gm1.mode() )
+}
+//---------------------------------------------------------
+void game1Btn0_LoopHandler()
+{
+  switch ( Gm1.mode() ) {
+  case Game1::MODE_PLAY:
+    break;
+  case Game1::MODE_END:
+    if ( Btn[0].long_pressed() ) {
+      startGame1();
+      return;
+    }
+    if ( Btn[0].multi_count() >= 2 ) {
+      Mode = MODE_CLOCK;
+      return;
+    }
+    break;
+  default:
+    break;
+  } // switch ( Gm1.mode() )
+}
+//---------------------------------------------------------
+void game1Btn1_LoopHandler()
+{
+  switch ( Gm1.mode() ) {
+  case Game1::MODE_PLAY:
+    break;
+  case Game1::MODE_END:
+    if ( Btn[1].long_pressed() ) {
+      startGame1();
+      return;
+    }
+    if ( Btn[1].multi_count() >= 2 ) {
+      Mode = MODE_CLOCK;
+      return;
+    }
+    break;
+  default:
+    break;
+  } // switch ( Gm1.mode() )
+}
+//=========================================================
 // [MODE] interrupt
-void button0IntrHandler(unsigned long cur_msec)
+void btn0_IntrHandler(unsigned long cur_msec)
 {
   if ( Btn[0].value() == HIGH ) {
     return;
   }
 
   // LOW
-  if ( Mode == MODE_STARTUP ) {
-    Mode = MODE_CLOCK;
-    return;
-  }
-  
-  // Mode == MODE_CLOCK
-  switch ( Clock1.mode() ) {
-  case Clock::MODE_DISP_TIME:
-    Clock1.set_mode(Clock::MODE_DISP_DATE);
-    DateStart = cur_msec;
+  switch ( Mode ) {
+  case MODE_VERSION:
+    versionBtn0_IntrHandler(cur_msec);
     break;
-  case Clock::MODE_DISP_DATE:
-    Clock1.set_mode(Clock::MODE_DISP_TIME);
+  case MODE_CLOCK:
+    clockBtn0_IntrHandler(cur_msec);
     break;
-  case Clock::MODE_SET_DATE_YEAR:
-    Clock1.set_mode(Clock::MODE_SET_DATE_MONTH);
-    break;
-  case Clock::MODE_SET_DATE_MONTH:
-    Clock1.set_mode(Clock::MODE_SET_DATE_DAY);
-    break;
-  case Clock::MODE_SET_DATE_DAY:
-    Clock1.set_mode(Clock::MODE_SET_TIME_HOUR);
-    break;
-  case Clock::MODE_SET_TIME_HOUR:
-    Clock1.set_mode(Clock::MODE_SET_TIME_MINUTE);
-    break;
-  case Clock::MODE_SET_TIME_MINUTE:
-    Clock1.set_mode(Clock::MODE_SET_TIME_SECOND);
-    break;
-  case Clock::MODE_SET_TIME_SECOND:
-    Clock1.set_adjust_flag(true);
-    Clock1.set_mode(Clock::MODE_DISP_TIME);
+  case MODE_GAME1:
+    game1Btn0_IntrHandler(cur_msec);
     break;
   default:
     break;
-  } // switch ( Clock1.mode() )
+  } // switch (Mode)
 }
 //---------------------------------------------------------
 // [SET] intrrupt
-void button1IntrHandler(unsigned long cur_msec)
+void btn1_IntrHandler(unsigned long cur_msec)
 {
   if ( Btn[1].value() == HIGH ) {
     return;
   }
 
   // LOW
-  if ( Mode == MODE_STARTUP ) {
-    Mode = MODE_CLOCK;
-    return;
-  }
-
-  // Mode == MODE_CLOCK
-  switch ( Clock1.mode() ) {
-  case Clock::MODE_SET_DATE_YEAR:
-    Clock1.countUpYear();
+  switch ( Mode ) {
+  case MODE_VERSION:
+    versionBtn1_IntrHandler(cur_msec);
     break;
-  case Clock::MODE_SET_DATE_MONTH:
-    Clock1.countUpMonth();
+  case MODE_CLOCK:
+    clockBtn1_IntrHandler(cur_msec);
     break;
-  case Clock::MODE_SET_DATE_DAY:
-    Clock1.countUpDay();
+  case MODE_GAME1:
+    game1Btn1_IntrHandler(cur_msec);
     break;
-  case Clock::MODE_SET_TIME_HOUR:
-    Clock1.countUpHour();
+  defaut:
     break;
-  case Clock::MODE_SET_TIME_MINUTE:
-    Clock1.countUpMinute();
-    break;
-  case Clock::MODE_SET_TIME_SECOND:
-    Clock1.countUpSecond();
-    break;
-  default:
-    break;
-  } // switch ( Clock1.mode() )
+  } // switch ( Mode )
 }
 //---------------------------------------------------------
 // [MODE] event in loop()
-void button0LoopHandler()
+void btn0_LoopHandler()
 {
-  if ( Mode == MODE_STARTUP ) {
-    return;
-  }
-
-  Serial.print("Clock1.mode()=0x");
-  Serial.println(Clock1.mode(), 16);
-  
-  // MODE_CLOCK
-  if ( Btn[0].long_pressed() || Btn[0].repeat() ) {
-    switch ( Clock1.mode() ) {
-    case Clock:: MODE_DISP_TIME:
-    case Clock:: MODE_DISP_DATE:
-      Clock1.set_mode(Clock::MODE_SET_DATE_YEAR);
-    } // switch ( Clock1.mode() )
-  }
+  switch ( Mode ) {
+  case MODE_VERSION:
+    versionBtn0_LoopHandler();
+    break;
+  case MODE_CLOCK:
+    clockBtn0_LoopHandler();
+    break;
+  case MODE_GAME1:
+    game1Btn0_LoopHandler();
+    break;
+  default:
+    break;
+  } // switch ( Mode )
 }
 //---------------------------------------------------------
 // [SET] event in loop()
-void button1LoopHandler()
+void btn1_LoopHandler()
 {
-  if ( Mode == MODE_STARTUP ) {
-    return;
-  }
-
-  // MODE_CLOCK
-  if ( Btn[1].multi_count() >= 2 ) { // double click
-    if ( Clock1.mode() == Clock::MODE_DISP_DATE || Clock1.mode() == Clock::MODE_DISP_TIME ) {
-      Mode = MODE_STARTUP;
-      StartUpStart = CurMsec;
-    }
-    return;
-  }
-
-  // single click, long pressed, repeat
-  if ( Btn[1].long_pressed() || Btn[1].repeat() ) {
-    BlinkEnable = false;
-    switch ( Clock1.mode() ) {
-    case Clock::MODE_SET_DATE_YEAR:
-      Clock1.countUpYear();
-      break;
-    case Clock::MODE_SET_DATE_MONTH:
-      Clock1.countUpMonth();
-      break;
-    case Clock::MODE_SET_DATE_DAY:
-      Clock1.countUpDay();
-      break;
-    case Clock::MODE_SET_TIME_HOUR:
-      Clock1.countUpHour();
-      break;
-    case Clock::MODE_SET_TIME_MINUTE:
-      Clock1.countUpMinute();
-      break;
-    case Clock::MODE_SET_TIME_SECOND:
-      Clock1.countUpSecond();
-      break;
-    } // switch
-  } else {
-    if ( ! BlinkEnable ) {
-      BlinkEnable = true;
-    }
-  }
+  switch ( Mode ) {
+  case MODE_VERSION:
+    versionBtn1_LoopHandler();
+    break;
+  case MODE_CLOCK:
+    clockBtn1_LoopHandler();
+    break;
+  case MODE_GAME1:
+    game1Btn1_LoopHandler();
+    break;
+  default:
+    break;
+  } // switch ( Mode )
+  
 }
-//---------------------------------------------------------
-void buttonLoopHandler()
-{
-  for (int btn_num = 0; btn_num < BUTTON_N; btn_num++) {
-    if ( Btn[btn_num].get() ) {
-      Btn[btn_num].print();
-
-      switch ( btn_num ) {
-      case 0:
-	button0LoopHandler();
-	break;
-      case 1:
-	button1LoopHandler();
-	break;
-      default:
-	break;
-      } // switch
-    } // if
-  } // for
-}
-
 //---------------------------------------------------------
 // button interrupt
-void buttonIntrHandler(unsigned long cur_msec)
+void btn_IntrHandler(unsigned long cur_msec)
 {
   for (int btn_num = 0; btn_num < BUTTON_N; btn_num++) {
     if ( Btn[btn_num].get() ) {
@@ -226,10 +361,10 @@ void buttonIntrHandler(unsigned long cur_msec)
 
       switch ( btn_num ) {
       case 0:
-	button0IntrHandler(cur_msec);
+	btn0_IntrHandler(cur_msec);
 	break;
       case 1:
-	button1IntrHandler(cur_msec);
+	btn1_IntrHandler(cur_msec);
 	break;
       default:
 	break;
@@ -249,8 +384,29 @@ ISR (PCINT2_vect)
   }
   prev_msec = cur_msec;
 
-  buttonIntrHandler(cur_msec);
+  btn_IntrHandler(cur_msec);
 }
+//---------------------------------------------------------
+void btn_LoopHandler()
+{
+  for (int btn_num = 0; btn_num < BUTTON_N; btn_num++) {
+    if ( Btn[btn_num].get() ) {
+      Btn[btn_num].print();
+
+      switch ( btn_num ) {
+      case 0:
+	btn0_LoopHandler();
+	break;
+      case 1:
+	btn1_LoopHandler();
+	break;
+      default:
+	break;
+      } // switch
+    } // if
+  } // for
+}
+
 //=========================================================
 void setup()
 {
@@ -274,8 +430,10 @@ void setup()
   for (int i=0; i < Button::Num; i++) {
     Button::Obj[i]->print();
   }
-  Clock1.init(&Rtc, &Vfd);
+  
+  Cl1.init(&Rtc, &Vfd);
 
+  Gm1.init(&Vfd);
   sei();
 }
 //=========================================================
@@ -284,40 +442,50 @@ void loop()
   CurMsec = millis();
 
   // Button Handler
-  buttonLoopHandler();
+  btn_LoopHandler();
 
   // Adjust clock
-  if ( Clock1.adjustIfNecessary() ) {
-    Serial.println(Clock1.dateStr());
+  if ( Cl1.adjustIfNecessary() ) {
+    Serial.println(Cl1.dateStr());
   }
 
-  // Timeout etc.
+  // 
   switch ( Mode ) {
-  case MODE_STARTUP:
-    if ( CurMsec - StartUpStart > STARTUP_MSEC ) {
+  case MODE_VERSION:
+    if ( CurMsec - VersionStart > VERSION_MSEC ) {
       Mode = MODE_CLOCK;
     }
+    break;
   case MODE_CLOCK:
-    switch ( Clock1.mode() ) {
+    switch ( Cl1.mode() ) {
     case Clock::MODE_DISP_DATE:
       if ( CurMsec - DateStart > DISP_DATE_MSEC ) {
-	Clock1.set_mode(Clock::MODE_DISP_TIME);
+	Cl1.set_mode(Clock::MODE_DISP_TIME);
       }
       break;
     default:
       break;
-    } // switch ( Clock1.mode() )
+    } // switch ( Cl1.mode() )
+    break;
+  case MODE_GAME1:
+    Gm1.loop();
+    break;
   default:
     break;
   } // switch ( Mode )
 
   // Display
   switch ( Mode ) {
-  case MODE_STARTUP:
+  case MODE_VERSION:
     displayVersion();
     break;	
   case MODE_CLOCK:
-    Clock1.display(BlinkEnable);
+    Cl1.display(BlinkEnable);
+    break;
+  case MODE_GAME1:
+    Gm1.display();
+    break;
+  default:
     break;
   } // switch ( Mode )
 }

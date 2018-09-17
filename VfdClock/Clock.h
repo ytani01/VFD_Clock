@@ -4,8 +4,8 @@
 #ifndef CLOCK_H
 #define CLOCK_H
 #include <Arduino.h>
-#include <Wire.h>
 #include "RTClib.h"
+#include <Wire.h>
 #include "VFD.h"
 
 typedef uint8_t mode_t;

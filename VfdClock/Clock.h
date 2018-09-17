@@ -12,16 +12,33 @@ typedef uint8_t mode_t;
 
 class Clock {
  public:
-  static const mode_t MODE_DISP_DATE		= 0x10;
-  static const mode_t MODE_DISP_TIME		= 0x20;
-  static const mode_t MODE_SET_DATE		= 0x30;
-  static const mode_t MODE_SET_DATE_YEAR	= 0x31;
-  static const mode_t MODE_SET_DATE_MONTH	= 0x32;
-  static const mode_t MODE_SET_DATE_DAY		= 0x33;
-  static const mode_t MODE_SET_TIME		= 0x40;
-  static const mode_t MODE_SET_TIME_HOUR	= 0x41;
-  static const mode_t MODE_SET_TIME_MINUTE	= 0x42;
-  static const mode_t MODE_SET_TIME_SECOND	= 0x43;
+  // bit pattern
+  // 0-------  .. OK
+  // 1-------  .. ERR
+  // -0------  ...N/A
+  // --01----  .... DISP
+  // --10----  .... SET
+  // ----01--  ...... DATE
+  // ----10--  ...... TIME
+  // ------00  ........ ALL
+  // ------01  ........ YEAR/HOUR
+  // ------10  ........ MONTH/MINUTE
+  // ------11  ........ DAY/SECOND
+  static const mode_t MODEMASK_OK_ERR		= 0x80;
+  static const mode_t MODEMASK_DISP_SET		= 0x30;
+  static const mode_t MODEMASK_DATE_TIME	= 0x09;
+  static const mode_t MODE_DISP			= 0x10;
+  static const mode_t MODE_DISP_DATE		= 0x14;
+  static const mode_t MODE_DISP_TIME		= 0x18;
+  static const mode_t MODE_SET			= 0x20;
+  static const mode_t MODE_SET_DATE		= 0x24;
+  static const mode_t MODE_SET_DATE_YEAR	= 0x25;
+  static const mode_t MODE_SET_DATE_MONTH	= 0x26;
+  static const mode_t MODE_SET_DATE_DAY		= 0x27;
+  static const mode_t MODE_SET_TIME		= 0x28;
+  static const mode_t MODE_SET_TIME_HOUR	= 0x29;
+  static const mode_t MODE_SET_TIME_MINUTE	= 0x2A;
+  static const mode_t MODE_SET_TIME_SECOND	= 0x2B;
   static const mode_t MODE_ERR			= 0x80;
 
 

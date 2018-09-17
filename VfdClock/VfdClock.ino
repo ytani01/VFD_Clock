@@ -1,7 +1,7 @@
 // VFD Clock
 // (c) 2018 FaLab Kannai
 //
-static String	VersionStr	= "05.01.02";
+static String	VersionStr	= "05.01.03";
 
 #include <Wire.h>
 #include "RTClib.h"
@@ -136,6 +136,9 @@ void button0LoopHandler()
   if ( Mode == MODE_STARTUP ) {
     return;
   }
+
+  Serial.print("Clock1.mode()=0x");
+  Serial.println(Clock1.mode(), 16);
   
   // MODE_CLOCK
   if ( Btn[0].long_pressed() || Btn[0].repeat() ) {
@@ -162,7 +165,8 @@ void button1LoopHandler()
     }
     return;
   }
-  
+
+  // single click, long pressed, repeat
   if ( Btn[1].long_pressed() || Btn[1].repeat() ) {
     BlinkEnable = false;
     switch ( Clock1.mode() ) {

@@ -262,14 +262,25 @@ void Clock::displaySetTime()
 
 void Clock::display(boolean blink_sw)
 {
-  if ( _mode == MODE_DISP_DATE ) {
+  switch ( _mode ) {
+  case MODE_DISP_DATE:
     displayDate();
-  } else if ( _mode == MODE_DISP_TIME ) {
+    break;
+  case MODE_DISP_TIME:
     displayTime();
-  } else if ( (_mode & 0xf0) == MODE_SET_DATE ) {
+    break;
+  case MODE_SET_DATE_YEAR:
+  case MODE_SET_DATE_MONTH:
+  case MODE_SET_DATE_DAY:
     displaySetDate();
-  } else if ( (_mode & 0xf0) == MODE_SET_TIME ) {
+    break;
+  case MODE_SET_TIME_HOUR:
+  case MODE_SET_TIME_MINUTE:
+  case MODE_SET_TIME_SECOND:
     displaySetTime();
-  }
+  default:
+    break;
+  } // switch ( _mode )
+
   _vfd->display(blink_sw);
 }

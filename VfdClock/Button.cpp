@@ -149,12 +149,12 @@ void Button::print(boolean interrupt)
 {
   String str = interrupt ? "!" : " ";
   
-  str += _value        ? " "  : "*";
   str += _name + " ";
+  str += _value        ? "H "  : "L ";
   str += String(_count) + " ";
   str += String(_multi_count) + " ";
-  str += _long_pressed ? "L " : "- ";
-  str += _repeat       ? "R"  : "-";
+  str += _long_pressed ? "Long " : "---- ";
+  str += _repeat       ? "Repeat "  : "------ ";
 
   Serial.println(str);
 }

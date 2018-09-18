@@ -1,7 +1,7 @@
 // VFD Clock
 // (c) 2018 FaLab Kannai
 //
-static String	VersionStr	= "06.00.01";
+static String	VersionStr	= "06.00.02";
 
 #include <Wire.h>
 #include "RTClib.h"
@@ -237,10 +237,6 @@ void game1Btn0_LoopHandler()
   case Game1::MODE_END:
     if ( Btn[0].long_pressed() ) {
       startGame1();
-      return;
-    }
-    if ( Btn[0].multi_count() >= 2 ) {
-      Mode = MODE_CLOCK;
       return;
     }
     break;

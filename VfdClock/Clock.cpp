@@ -8,7 +8,7 @@
 Clock::Clock()
 {
 }
-
+//===========================================
 // Public methods
 void Clock::init(RTC_DS1307 *rtc, VFD *vfd)
 {
@@ -17,20 +17,23 @@ void Clock::init(RTC_DS1307 *rtc, VFD *vfd)
 
   _cur_dt = _rtc->now();
 }
-
+//-------------------------------------------
 mode_t Clock::mode()
 {
   return _mode;
 }
+//-------------------------------------------
 void Clock::set_mode(mode_t mode)
 {
   _mode = mode;
 }
 
+//-------------------------------------------
 DateTime Clock::cur_dt()
 {
   return _cur_dt;
 }
+//-------------------------------------------
 String Clock::dateStr()
 {
   String YYYY = String(_cur_dt.year());
@@ -43,16 +46,19 @@ String Clock::dateStr()
   return YYYY + "/" + MM + "/" + DD + " " + hh + ":" + mm + ":" + ss + "." + ms;
 }
 
+//-------------------------------------------
 boolean Clock::adjust_flag()
 {
   return _adjust_flag;
 }
+//-------------------------------------------
 void Clock::set_adjust_flag(boolean flag)
 {
   _adjust_flag = flag;
 }
 
 
+//-------------------------------------------
 boolean Clock::update()
 {
   static boolean flag_updated = false;
@@ -76,11 +82,13 @@ boolean Clock::update()
   return flag_changed;
 }
 
+//-------------------------------------------
 void Clock::adjust() {
     _msec_offset = millis() % 1000;
     _rtc->adjust(_cur_dt);
 }
 
+//-------------------------------------------
 boolean Clock::adjustIfNecessary()
 {
   if ( _adjust_flag ) {
@@ -91,6 +99,7 @@ boolean Clock::adjustIfNecessary()
   return false;
 }
 
+//-------------------------------------------
 void Clock::countUpYear()
 {
   uint8_t year = _cur_dt.year() % 100;
@@ -100,6 +109,7 @@ void Clock::countUpYear()
 		     _cur_dt.hour(), _cur_dt.minute(), _cur_dt.second());
   _adjust_flag = true;
 }
+//-------------------------------------------
 void Clock::countUpMonth()
 {
   uint8_t month = _cur_dt.month();
@@ -113,6 +123,7 @@ void Clock::countUpMonth()
 		     _cur_dt.hour(), _cur_dt.minute(), _cur_dt.second());
   _adjust_flag = true;
 }
+//-------------------------------------------
 void Clock::countUpDay()
 {
   unsigned long year  = _cur_dt.year();
@@ -140,6 +151,7 @@ void Clock::countUpDay()
 		     _cur_dt.hour(), _cur_dt.minute(), _cur_dt.second());
   _adjust_flag = true;
 }
+//-------------------------------------------
 void Clock::countUpHour()
 {
   uint8_t hour = _cur_dt.hour();
@@ -149,6 +161,7 @@ void Clock::countUpHour()
 		     hour, _cur_dt.minute(), _cur_dt.second());
   _adjust_flag = true;
 }
+//-------------------------------------------
 void Clock::countUpMinute()
 {
   uint8_t minute = _cur_dt.minute();
@@ -158,6 +171,7 @@ void Clock::countUpMinute()
 		     _cur_dt.hour(), minute, _cur_dt.second());
   _adjust_flag = true;
 }
+//-------------------------------------------
 void Clock::countUpSecond()
 {
   uint8_t second = _cur_dt.second();
@@ -168,6 +182,7 @@ void Clock::countUpSecond()
   _adjust_flag = true;
 }
 
+//-------------------------------------------
 void Clock::setVfd(unsigned long num1, unsigned long num2, unsigned long num3)
 {
   _vfd->set(0, (num1 % 100) / 10, false, false);
@@ -178,9 +193,11 @@ void Clock::setVfd(unsigned long num1, unsigned long num2, unsigned long num3)
   _vfd->set(5, (num3 % 100) % 10, false, false);
 }
 
+//-------------------------------------------
 void Clock::setVfdDate() {
   setVfd(_cur_dt.year(), _cur_dt.month(), _cur_dt.day());
 }
+//-------------------------------------------
 void Clock::setVfdTime() {
   setVfd(_cur_dt.hour(), _cur_dt.minute(), _cur_dt.second());
   if ( _cur_dt.hour() < 10 ) {
@@ -190,11 +207,13 @@ void Clock::setVfdTime() {
   _vfd->setDp(3, true);
 }
 
+//-------------------------------------------
 void Clock::displayDate()
 {
   update();
   setVfdDate();
 }
+//-------------------------------------------
 void Clock::displayTime()
 {
   update();
@@ -221,6 +240,7 @@ void Clock::displayTime()
     _vfd->setBlink(5, true);
   }
 }
+//-------------------------------------------
 void Clock::displaySetDate()
 {
   boolean blist[] = {false, false, false, false, false, false};
@@ -240,6 +260,7 @@ void Clock::displaySetDate()
   } // switch ( _mode )
   _vfd->setBlink(blist);
 }
+//-------------------------------------------
 void Clock::displaySetTime()
 {
   boolean blist[] = {false, false, false, false, false, false};
@@ -260,6 +281,7 @@ void Clock::displaySetTime()
   _vfd->setBlink(blist);
 }
 
+//-------------------------------------------
 void Clock::display(boolean blink_sw)
 {
   switch ( _mode ) {

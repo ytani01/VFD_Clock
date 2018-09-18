@@ -8,7 +8,7 @@
 class VFD {
   public:
     static const unsigned long DISP_DELAY     = 2;   // msec
-    static const unsigned long BLINK_INTERVAL = 500; // msec
+    static const unsigned long BLINK_INTERVAL = 400; // msec
     static const unsigned long BLINK_ON_MSEC  = 300; // msec
     static const uint8_t       SEG_N          = 8;
     

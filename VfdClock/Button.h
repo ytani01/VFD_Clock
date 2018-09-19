@@ -14,7 +14,7 @@ class Button {
   static const unsigned long	DEBOUNCE        	=   10;
   static const unsigned long	LONG_PRESS_MSEC 	= 1000;
   static const unsigned long	REPEAT_MSEC     	=  100;
-  static const unsigned long	MULTI_MSEC		=  500;
+  static const unsigned long	CLICK_MSEC		=  500;
 
   static const button_event_t	EVENT_NONE		= 0x00;
   static const button_event_t	EVENT_INTRRUPT		= 0x10;
@@ -40,7 +40,7 @@ class Button {
   String  	name();
   boolean 	value();
   count_t    	count();
-  count_t	multi_count();
+  count_t	click_count();
   boolean	long_pressed();
   boolean	repeat();
 
@@ -57,7 +57,7 @@ class Button {
   unsigned long	_first_press_start; // msec
   unsigned long	_press_start;       // msec
   count_t	_count;
-  count_t	_multi_count;
+  count_t	_click_count;
   boolean	_long_pressed;
   boolean	_repeat;
 

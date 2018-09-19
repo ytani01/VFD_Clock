@@ -1,7 +1,7 @@
 // VFD Clock
 // (c) 2018 FaLab Kannai
 //
-static String	VersionStr	= "06.00.02";
+static String	VersionStr	= "06.00.03";
 
 #include <Wire.h>
 #include "RTClib.h"
@@ -71,7 +71,7 @@ void versionBtn1_IntrHandler(unsigned long cur_msec)
 //---------------------------------------------------------
 void versionBtn0_LoopHandler()
 {
-  if ( Btn[0].multi_count() >= 1 ) {
+  if ( Btn[0].click_count() >= 1 ) {
     Mode = MODE_CLOCK;
   }
 }
@@ -137,7 +137,7 @@ void clockBtn0_LoopHandler()
 {
   switch ( Cl1.mode() ) {
   case Clock::MODE_DISP_TIME:
-    if ( Btn[0].multi_count() >= 1 ) {
+    if ( Btn[0].click_count() >= 1 ) {
       Cl1.set_mode(Clock::MODE_DISP_DATE);
       DateStart = CurMsec;
       return;
@@ -148,7 +148,7 @@ void clockBtn0_LoopHandler()
     }
     break;
   case Clock::MODE_DISP_DATE:
-    if ( Btn[0].multi_count() >= 1 ) {
+    if ( Btn[0].click_count() >= 1 ) {
       Cl1.set_mode(Clock::MODE_DISP_TIME);
       return;
     }
@@ -167,7 +167,7 @@ void clockBtn1_LoopHandler()
   switch ( Cl1.mode() ) {
   case Clock::MODE_DISP_DATE:
   case Clock::MODE_DISP_TIME:
-    if ( Btn[1].multi_count() >= 2 )  {
+    if ( Btn[1].click_count() >= 2 )  {
       startGame1();
       return;
     }
@@ -255,7 +255,7 @@ void game1Btn1_LoopHandler()
       startGame1();
       return;
     }
-    if ( Btn[1].multi_count() >= 2 ) {
+    if ( Btn[1].click_count() >= 2 ) {
       Mode = MODE_CLOCK;
       return;
     }
@@ -265,7 +265,6 @@ void game1Btn1_LoopHandler()
   } // switch ( Gm1.mode() )
 }
 //=========================================================
-// [MODE] interrupt
 void btn0_IntrHandler(unsigned long cur_msec)
 {
   if ( Btn[0].value() == HIGH ) {
@@ -288,7 +287,6 @@ void btn0_IntrHandler(unsigned long cur_msec)
   } // switch (Mode)
 }
 //---------------------------------------------------------
-// [SET] intrrupt
 void btn1_IntrHandler(unsigned long cur_msec)
 {
   if ( Btn[1].value() == HIGH ) {
@@ -309,43 +307,6 @@ void btn1_IntrHandler(unsigned long cur_msec)
   defaut:
     break;
   } // switch ( Mode )
-}
-//---------------------------------------------------------
-// [MODE] event in loop()
-void btn0_LoopHandler()
-{
-  switch ( Mode ) {
-  case MODE_VERSION:
-    versionBtn0_LoopHandler();
-    break;
-  case MODE_CLOCK:
-    clockBtn0_LoopHandler();
-    break;
-  case MODE_GAME1:
-    game1Btn0_LoopHandler();
-    break;
-  default:
-    break;
-  } // switch ( Mode )
-}
-//---------------------------------------------------------
-// [SET] event in loop()
-void btn1_LoopHandler()
-{
-  switch ( Mode ) {
-  case MODE_VERSION:
-    versionBtn1_LoopHandler();
-    break;
-  case MODE_CLOCK:
-    clockBtn1_LoopHandler();
-    break;
-  case MODE_GAME1:
-    game1Btn1_LoopHandler();
-    break;
-  default:
-    break;
-  } // switch ( Mode )
-  
 }
 //---------------------------------------------------------
 // button interrupt
@@ -381,6 +342,43 @@ ISR (PCINT2_vect)
   prev_msec = cur_msec;
 
   btn_IntrHandler(cur_msec);
+}
+//=========================================================
+// [MODE] event in loop()
+void btn0_LoopHandler()
+{
+  switch ( Mode ) {
+  case MODE_VERSION:
+    versionBtn0_LoopHandler();
+    break;
+  case MODE_CLOCK:
+    clockBtn0_LoopHandler();
+    break;
+  case MODE_GAME1:
+    game1Btn0_LoopHandler();
+    break;
+  default:
+    break;
+  } // switch ( Mode )
+}
+//---------------------------------------------------------
+// [SET] event in loop()
+void btn1_LoopHandler()
+{
+  switch ( Mode ) {
+  case MODE_VERSION:
+    versionBtn1_LoopHandler();
+    break;
+  case MODE_CLOCK:
+    clockBtn1_LoopHandler();
+    break;
+  case MODE_GAME1:
+    game1Btn1_LoopHandler();
+    break;
+  default:
+    break;
+  } // switch ( Mode )
+  
 }
 //---------------------------------------------------------
 void btn_LoopHandler()

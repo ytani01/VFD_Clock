@@ -1,4 +1,4 @@
-# VfdClock.ino
+# VfdClock
 
 VFD管デジタル時計 with 数字シューティング・ゲーム
 

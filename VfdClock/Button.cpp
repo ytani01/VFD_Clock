@@ -25,7 +25,7 @@ void Button::init(byte pin, String name)
   _press_start  = 0;
   _first_press_start = 0;
   _count        = 0;
-  _multi_count	= 0;
+  _click_count	= 0;
   _long_pressed = false;
   _repeat       = false;
 
@@ -35,7 +35,11 @@ void Button::init(byte pin, String name)
 
   pciSetup(_pin);
 }
-
+//
+// return:
+//	true	changed
+//	false	to be ignored
+//
 boolean Button::get()
 {
   unsigned long cur_msec = millis();
@@ -50,10 +54,11 @@ boolean Button::get()
   _prev_value = _value;
   _value = digitalRead(_pin);
 
-  _multi_count = 0;
+  _click_count = 0;
   if ( _count > 0 ){
-    if ( cur_msec - _first_press_start > MULTI_MSEC ) {
-      _multi_count = _count;
+    if ( cur_msec - _first_press_start > CLICK_MSEC ) {
+      // click count is detected
+      _click_count = _count;
       _count = 0;
       ret = true;
     }
@@ -129,9 +134,9 @@ count_t Button::count()
 {
   return _count;
 }
-count_t Button::multi_count()
+count_t Button::click_count()
 {
-  return _multi_count;
+  return _click_count;
 }
 boolean Button::long_pressed()
 {
@@ -152,7 +157,7 @@ void Button::print(boolean interrupt)
   str += _name + " ";
   str += _value        ? "H "  : "L ";
   str += String(_count) + " ";
-  str += String(_multi_count) + " ";
+  str += String(_click_count) + " ";
   str += _long_pressed ? "Long " : "---- ";
   str += _repeat       ? "Repeat "  : "------ ";
 

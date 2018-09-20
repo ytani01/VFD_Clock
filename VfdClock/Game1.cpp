@@ -4,17 +4,20 @@
 #include "Game1.h"
 
 //===========================================
+// Bullet
+//-------------------------------------------
 // Constractor
 Bullet::Bullet() {
 }
 
+//-------------------------------------------
 // Public methods
 void Bullet::init(uint8_t val, unsigned long interval) {
   _val = val;
   _x = 0;
   _time = millis();
   _interval = interval;
-  print("init()");
+  // print("init()");
 }
 
 uint8_t Bullet::val() {
@@ -57,11 +60,14 @@ void Bullet::print(String prefix) const
 }  
 
 //===========================================
+// Player
+//-------------------------------------------
 // Constractor
 Player::Player() {
   Player::init(0);
 }
 
+//-------------------------------------------
 // Public methods
 void Player::init(uint8_t val) {
   _val = val;
@@ -102,6 +108,8 @@ void Player::bullet_delete() {
 }
 
 //===========================================
+// Enemy
+//-------------------------------------------
 // Constractor
 Enemy::Enemy() {
   Enemy::init(0);
@@ -110,6 +118,7 @@ Enemy::Enemy(unsigned long interval) {
   Enemy::init(interval);
 }
 
+//-------------------------------------------
 // Public methods
 void Enemy::init(unsigned long interval) {
   _interval = interval;
@@ -174,15 +183,15 @@ void Enemy::print(String prefix)
 }
 
 //===========================================
+// Game1
+//-------------------------------------------
 // Constractor
-//===========================================
 Game1::Game1()
 {
 }
 
-//===========================================
+//-------------------------------------------
 // Public methods
-//===========================================
 void Game1::init(VFD *vfd)
 {
   _vfd = vfd;
@@ -194,7 +203,6 @@ void Game1::init(VFD *vfd)
   _mode = Game1::MODE_PLAY;
 }
 
-//===========================================
 void Game1::loop()
 {
   if ( _mode != Game1::MODE_PLAY ) {
@@ -227,7 +235,6 @@ void Game1::loop()
   }
 }
 
-//===========================================
 void Game1::displayGame()
 {
   _vfd->clear();
@@ -243,9 +250,19 @@ void Game1::displayGame()
 
 void Game1::displayScore()
 {
+  uint8_t	num;
+  uint8_t	val = VFD::VAL_NULL;
+  
   _vfd->clear();
   for (int i=0; i < _vfd->digitN(); i++) {
-    _vfd->set(i, _score / int(pow(10, 5 - i)) % 10, false, true);
+    num = _score / int(pow(10, 5 - i)) % 10;
+    //Serial.println(String(i) + ":" + String(num) + ":" + String(val));
+    if ( val == VFD::VAL_NULL ) {
+      if ( num != 0 ) {
+	val = num;
+      }
+    }
+    _vfd->set(i, val, false, true);
   }
 }
 
@@ -264,7 +281,7 @@ void Game1::display()
 
   _vfd->display();
 }
-//===========================================
+
 mode_t Game1::mode()
 {
   return _mode;
@@ -286,4 +303,3 @@ void Game1::set_mode(mode_t mode)
 {
   _mode = mode;
 }
-// Public methods

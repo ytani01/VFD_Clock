@@ -10,11 +10,10 @@ Clock::Clock()
 }
 //===========================================
 // Public methods
-void Clock::init(RTC_DS1307 *rtc, VFD *vfd)
+void Clock::init(VFD *vfd, RTC_DS1307 *rtc)
 {
-  _rtc = rtc;
   _vfd = vfd;
-
+  _rtc = rtc;
   _cur_dt = _rtc->now();
 }
 //-------------------------------------------

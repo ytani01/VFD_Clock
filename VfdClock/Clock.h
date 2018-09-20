@@ -57,7 +57,7 @@ class Clock {
 
   Clock();
   
-  void		init(RTC_DS1307 *rtc, VFD *vfd);
+  void		init(VFD *vfd, RTC_DS1307 *rtc);
 
   mode_t	mode();
   void		set_mode(mode_t mode);

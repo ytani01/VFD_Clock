@@ -12,6 +12,8 @@ typedef uint8_t mode_t;
 
 class Clock {
  public:
+  static const unsigned long	DISP_DATE_MSEC	= 3000;	// msec
+  
   // bit pattern
   // 00------  .. OK
   // 01------  .. WARN
@@ -29,16 +31,16 @@ class Clock {
   static const mode_t MODEMASK_DATE_TIME	= 0x0C;
   static const mode_t MODEMASK_ITEM		= 0x03;
 
-  static const mode_t MODE_X_OK			= 0x00;
-  static const mode_t MODE_X_WARN		= 0x40;
-  static const mode_t MODE_X_ERR		= 0x80;
-  static const mode_t MODE_XX_DISP		= 0x10;
-  static const mode_t MODE_XX_SET		= 0x20;
-  static const mode_t MODE_XXX_DATE		= 0x04;
-  static const mode_t MODE_XXX_TIME		= 0x08;
-  static const mode_t MODE_XXXX_YEAR_HOUR	= 0x01;
-  static const mode_t MODE_XXXX_MONTH_MINUTE	= 0x02;
-  static const mode_t MODE_XXXX_DAY_SECOND	= 0x03;
+  static const mode_t MODE_FF000000_OK		= 0x00;
+  static const mode_t MODE_FF000000_WARN	= 0x40;
+  static const mode_t MODE_FF000000_ERR		= 0x80;
+  static const mode_t MODE_00FF0000_DISP	= 0x10;
+  static const mode_t MODE_00FF0000_SET		= 0x20;
+  static const mode_t MODE_0000FF00_DATE	= 0x04;
+  static const mode_t MODE_0000FF00_TIME	= 0x08;
+  static const mode_t MODE_0000FF00_YEAR_HOUR	= 0x01;
+  static const mode_t MODE_000000FF_MONTH_MINUTE= 0x02;
+  static const mode_t MODE_000000FF_DAY_SECOND	= 0x03;
   
   static const mode_t MODE_DISP			= 0x10;
   static const mode_t MODE_DISP_DATE		= 0x14;
@@ -55,13 +57,15 @@ class Clock {
   static const mode_t MODE_ERR			= 0x80;
 
 
-  Clock();
+  Clock() {};
   
   void		init(VFD *vfd, RTC_DS1307 *rtc);
 
+  void		loop(unsigned long cur_msec, boolean blink_sw);
+
   mode_t	mode();
   void		set_mode(mode_t mode);
-  
+
   DateTime	cur_dt();
   String	dateStr();
   
@@ -82,13 +86,13 @@ class Clock {
   void		setVfd(unsigned long num1, unsigned long num2, unsigned long num3);
   void		setVfdDate();
   void		setVfdTime();
-  
+
   void		displayDate();
   void		displayTime();
   void		displaySetDate();
   void		displaySetTime();
   void		display(boolean blink_sw);
-
+  
  private:
   RTC_DS1307	*_rtc;
   VFD		*_vfd;
@@ -98,7 +102,8 @@ class Clock {
 
   DateTime	_cur_dt;
   unsigned long _msec_offset	= 0; // msec
+
+  unsigned long	_date_start_msec;
 };
 
 #endif
-

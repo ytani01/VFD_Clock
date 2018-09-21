@@ -3,11 +3,9 @@
 //
 #include "VFD.h"
 
-// Constractor
-VFD::VFD() {
-}
-
-// Public methods
+//-------------------------------------------
+//VFD::VFD() {}
+//-------------------------------------------
 void VFD::init(uint8_t pin_seg[], uint8_t pin_digit[], size_t digitN) {
   _pin_seg = new uint8_t[SEG_N];
   for (int i = 0; i < SEG_N; i++) {
@@ -31,14 +29,14 @@ void VFD::init(uint8_t pin_seg[], uint8_t pin_digit[], size_t digitN) {
     digitalWrite(_pin_digit[i], LOW);
   }
 }
-
+//-------------------------------------------
 size_t VFD::digitN() {
   return _digitN;
 }
 size_t VFD::digitI() {
   return _digitI;
 }
-
+//-------------------------------------------
 void VFD::clear()
 {
   for (int i = 0; i < _digitN; i++) {
@@ -51,13 +49,14 @@ void VFD::clear(uint8_t idx)
   _dp[idx] = false;
   _bl[idx] = false;
 }
-
+//-------------------------------------------
 void VFD::set(uint8_t idx, uint8_t val, boolean dp, boolean bl)
 {
   _val[idx] = val;
   _dp[idx] = dp;
   _bl[idx] = bl;
 }
+//-------------------------------------------
 void VFD::setValue(uint8_t val0, uint8_t val1, uint8_t val2,
 		   uint8_t val3, uint8_t val4, uint8_t val5)
 {
@@ -68,17 +67,19 @@ void VFD::setValue(uint8_t val0, uint8_t val1, uint8_t val2,
   _val[4] = val4;
   _val[5] = val5;
 }
+//-------------------------------------------
 void VFD::setValue(uint8_t val[])
 {
   for (int i=0; i < _digitN; i++) {
     _val[i] = val[i];
   }
 }
+//-------------------------------------------
 void VFD::setValue(uint8_t idx, uint8_t val)
 {
   _val[idx] = val;
 }
-
+//-------------------------------------------
 void VFD::setNum(unsigned long num)
 {
   for (int i=0; i < _digitN; i++) {
@@ -86,48 +87,52 @@ void VFD::setNum(unsigned long num)
     _val[i] = v;
   }
 }
-
+//-------------------------------------------
 void VFD::setDp(uint8_t idx, boolean dp)
 {
   _dp[idx] = dp;
 }
+//-------------------------------------------
 void VFD::setDp(boolean *dp)
 {
   for (int i=0; i < _digitN; i++) {
     _dp[i] = dp[i];
   }
 }
+//-------------------------------------------
 void VFD::setDp(boolean dp)
 {
   for (int i=0; i < _digitN; i++) {
     _dp[i] = dp;
   }
 }
-
+//-------------------------------------------
 void VFD::setBlink(uint8_t idx, boolean blink)
 {
   _bl[idx] = blink;
 }
+//-------------------------------------------
 void VFD::setBlink(boolean *blink)
 {
   for (int i=0; i < _digitN; i++) {
     _bl[i] = blink[i];
   }
 }
+//-------------------------------------------
 void VFD::setBlink(boolean blink)
 {
   for (int i=0; i < _digitN; i++) {
     _bl[i] = blink;
   }
 }
-
+//-------------------------------------------
 boolean VFD::blinkOff() {
   if ( _cur_msec % BLINK_INTERVAL > BLINK_ON_MSEC ) {
     return true;
   }
   return false;
 }
-
+//-------------------------------------------
 void VFD::displayOne() {
   for (int i = 0; i < SEG_N - 1; i++) {
     digitalWrite(_pin_seg[i], VAL[_val[_digitI]][i]);
@@ -135,7 +140,7 @@ void VFD::displayOne() {
   digitalWrite(_pin_seg[SEG_N - 1], _dp[_digitI]);
   digitalWrite(_pin_digit[_digitI], HIGH);
 }
-
+//-------------------------------------------
 void VFD::display(boolean blink_sw)
 {
   if ( _digitI == 0 ) {
@@ -152,8 +157,8 @@ void VFD::display(boolean blink_sw)
   }
   delay(DISP_DELAY);
 }
+//-------------------------------------------
 void VFD::display()
 {
   display(true);
 }
-// Private methods

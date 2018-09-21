@@ -1,7 +1,7 @@
 // VfdClock.ino
 // (c) 2018 FaLab Kannai
 //
-static String	VersionStr	= "06.00.04";
+static String	VersionStr	= "06.01.00";
 
 #include <Wire.h>
 #include "RTClib.h"
@@ -9,15 +9,16 @@ static String	VersionStr	= "06.00.04";
 #include "VersionMode.h"
 #include "VFD.h"
 #include "Clock.h"
+#include "StopWatch.h"
 #include "Game1.h"
 
 #define 	VERSION_MSEC    3000 // msec
-#define 	DISP_DATE_MSEC  5000 // msec
 
 #define		MODE_NULL	0x00
 #define		MODE_VERSION	0x01
 #define		MODE_CLOCK	0x02
-#define		MODE_GAME1	0x03
+#define		MODE_STOP_WATCH	0x03
+#define		MODE_GAME1	0x10
 
 #define 	BUTTON_N 	2
 
@@ -34,12 +35,12 @@ Button		*Btn;
 
 VersionMode	Ver;
 Clock		Cl1;
+StopWatch	SW1;
 Game1		Gm1;
 
 unsigned long	CurMsec		= 0;
 unsigned long	PrevMsec	= 0;
 unsigned long	VersionStart	= 0;
-unsigned long	DateStart	= 0;
 boolean 	BlinkEnable	= true;
 
 //=========================================================
@@ -52,6 +53,12 @@ void startVersion()
 void startClock()
 {
   Mode = MODE_CLOCK;
+}
+//---------------------------------------------------------
+void startStopWatch()
+{
+  //SW1.init(&Vfd);
+  Mode = MODE_STOP_WATCH;
 }
 //---------------------------------------------------------
 void startGame1()
@@ -120,7 +127,6 @@ void clockBtn0_LoopHandler()
   case Clock::MODE_DISP_TIME:
     if ( Btn[0].click_count() >= 1 ) {
       Cl1.set_mode(Clock::MODE_DISP_DATE);
-      DateStart = CurMsec;
       return;
     }
     if ( Btn[0].long_pressed() || Btn[0].repeat() ) {
@@ -148,7 +154,11 @@ void clockBtn1_LoopHandler()
   switch ( Cl1.mode() ) {
   case Clock::MODE_DISP_DATE:
   case Clock::MODE_DISP_TIME:
-    if ( Btn[1].click_count() >= 2 )  {
+    if ( Btn[1].click_count() == 2 ) {
+      startStopWatch();
+      return;
+    }
+    if ( Btn[1].click_count() >= 3 ) {
       startGame1();
       return;
     }
@@ -174,7 +184,44 @@ void clockBtn1_LoopHandler()
     break;
   } // switch ( Cl1.mode() )
 }
-
+//=========================================================
+// MODE_STOP_WATCH
+//=========================================================
+void stopWatchBtn0_IntrHandler(unsigned long cur_msec)
+{
+  if ( SW1.mode() == StopWatch::MODE_TIME ) {
+    if ( SW1.stat() == StopWatch::STAT_STOP ) {
+      SW1.start();
+    } else if ( SW1.stat() == StopWatch::STAT_RUNNING ) {
+      SW1.stop();
+    }
+  } else if ( SW1.mode() == StopWatch::MODE_LAP ) {
+    SW1.set_mode(StopWatch::MODE_TIME);
+  }
+}
+//---------------------------------------------------------
+void stopWatchBtn1_IntrHandler(unsigned long cur_msec)
+{
+}
+//---------------------------------------------------------
+void stopWatchBtn0_LoopHandler()
+{
+}
+//---------------------------------------------------------
+void stopWatchBtn1_LoopHandler()
+{
+  if ( Btn[1].click_count() == 1 ) {
+    if ( SW1.mode() == StopWatch::MODE_TIME && SW1.stat() == StopWatch::STAT_STOP ) {
+      SW1.reset();
+    }
+    return;
+  }
+  
+  if ( Btn[1].click_count() >= 2 ) {
+    startClock();
+    return;
+  }
+}
 //=========================================================
 // MODE_GAME1
 //=========================================================
@@ -255,18 +302,20 @@ void btn_IntrHandler(unsigned long cur_msec)
       switch ( btn_num ) {
       case 0:
 	switch ( Mode ) {
-	case MODE_VERSION:	  versionBtn0_IntrHandler(cur_msec);	  break;
-	case MODE_CLOCK:	  clockBtn0_IntrHandler(cur_msec);	  break;
-	case MODE_GAME1:	  game1Btn0_IntrHandler(cur_msec);	  break;
+	case MODE_VERSION:	versionBtn0_IntrHandler(cur_msec);	break;
+	case MODE_CLOCK:	clockBtn0_IntrHandler(cur_msec);	break;
+	case MODE_STOP_WATCH:	stopWatchBtn0_IntrHandler(cur_msec);	break;
+	case MODE_GAME1:	game1Btn0_IntrHandler(cur_msec);	break;
 	default:  break;
 	} // switch (Mode)
 	break;
 
       case 1:
 	switch ( Mode ) {
-	case MODE_VERSION:	  versionBtn1_IntrHandler(cur_msec);	  break;
-	case MODE_CLOCK:	  clockBtn1_IntrHandler(cur_msec);	  break;
-	case MODE_GAME1:	  game1Btn1_IntrHandler(cur_msec);	  break;
+	case MODE_VERSION:	versionBtn1_IntrHandler(cur_msec);	break;
+	case MODE_CLOCK:	clockBtn1_IntrHandler(cur_msec);	break;
+	case MODE_STOP_WATCH:	stopWatchBtn1_IntrHandler(cur_msec);	break;
+	case MODE_GAME1:	game1Btn1_IntrHandler(cur_msec);	break;
 	defaut:	  break;
 	} // switch ( Mode )
 	break;
@@ -292,7 +341,7 @@ ISR (PCINT2_vect)
   btn_IntrHandler(cur_msec);
 }
 //=========================================================
-// loop event handlers
+// button event in loop handlers
 //---------------------------------------------------------
 void btn_LoopHandler()
 {
@@ -305,6 +354,7 @@ void btn_LoopHandler()
 	switch ( Mode ) {
 	case MODE_VERSION:	versionBtn0_LoopHandler();	break;
 	case MODE_CLOCK:	clockBtn0_LoopHandler();	break;
+	case MODE_STOP_WATCH:	stopWatchBtn0_LoopHandler();	break;
 	case MODE_GAME1:	game1Btn0_LoopHandler();	break;
 	default:    break;
 	} // switch ( Mode )
@@ -313,6 +363,7 @@ void btn_LoopHandler()
 	switch ( Mode ) {
 	case MODE_VERSION:	versionBtn1_LoopHandler();	break;
 	case MODE_CLOCK:	clockBtn1_LoopHandler();	break;
+	case MODE_STOP_WATCH:	stopWatchBtn1_LoopHandler();	break;
 	case MODE_GAME1:	game1Btn1_LoopHandler();	break;
 	default:    break;
 	} // switch ( Mode )
@@ -358,6 +409,7 @@ void setup()
   // init all modes
   Ver.init(&Vfd, VersionStr);
   Cl1.init(&Vfd, &Rtc);
+  SW1.init(&Vfd);
   Gm1.init(&Vfd);
 
   // start Version Mode
@@ -370,10 +422,10 @@ void setup()
 void loop()
 //=========================================================
 {
-  CurMsec = millis();
-
   // Button Handler
   btn_LoopHandler();
+
+  CurMsec = millis(); // MUST! after btn_LoopHandler()
 
   // Adjust clock
   if ( Cl1.adjustIfNecessary() ) {
@@ -386,37 +438,11 @@ void loop()
     if ( CurMsec - VersionStart > VERSION_MSEC ) {
       startClock();
     }
-    break;
-  case MODE_CLOCK:
-    switch ( Cl1.mode() ) {
-    case Clock::MODE_DISP_DATE:
-      if ( CurMsec - DateStart > DISP_DATE_MSEC ) {
-	Cl1.set_mode(Clock::MODE_DISP_TIME);
-      }
-      break;
-    default:
-      break;
-    } // switch ( Cl1.mode() )
-    break;
-  case MODE_GAME1:
-    Gm1.loop();
-    break;
-  default:
-    break;
-  } // switch ( Mode )
-
-  // Display
-  switch ( Mode ) {
-  case MODE_VERSION:
     Ver.display(BlinkEnable);
-    break;	
-  case MODE_CLOCK:
-    Cl1.display(BlinkEnable);
     break;
-  case MODE_GAME1:
-    Gm1.display();
-    break;
-  default:
-    break;
+  case MODE_CLOCK:	Cl1.loop(CurMsec, BlinkEnable);	break;
+  case MODE_STOP_WATCH:	SW1.loop(CurMsec);		break;
+  case MODE_GAME1:	Gm1.loop(CurMsec);		break;
+  default:    break;
   } // switch ( Mode )
 }

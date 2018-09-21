@@ -39,7 +39,8 @@ class VFD {
     static const uint8_t VAL_BAR_LOW  = 12;
     static const uint8_t VAL_NULL     = 0xff;
 
-    VFD();
+    VFD() {};
+    
     void init(uint8_t pin_seg[], uint8_t pin_digit[], size_t digitN);
 
     size_t digitN();

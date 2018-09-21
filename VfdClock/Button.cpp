@@ -78,7 +78,6 @@ boolean Button::get()
 
   // LOW
   if ( _value != _prev_value ) {
-    
     // Pushed now !
     _press_start = cur_msec;
     _count++;

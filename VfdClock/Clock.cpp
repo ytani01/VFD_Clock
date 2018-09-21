@@ -4,17 +4,26 @@
 #include "Clock.h"
 
 //===========================================
-// Constractor
-Clock::Clock()
-{
-}
-//===========================================
-// Public methods
+//Clock::Clock() {}
+//-------------------------------------------
 void Clock::init(VFD *vfd, RTC_DS1307 *rtc)
 {
   _vfd = vfd;
   _rtc = rtc;
   _cur_dt = _rtc->now();
+}
+//-------------------------------------------
+void Clock::loop(unsigned long cur_msec, boolean blink_sw)
+{
+  if ( _mode == MODE_DISP_DATE ) {
+    if ( cur_msec - _date_start_msec > DISP_DATE_MSEC ) {
+      Serial.println("Clock::loop(" + String(cur_msec) + ")" +
+		     ": _date_start_msec=" + String(_date_start_msec));
+      set_mode(MODE_DISP_TIME);
+    }
+  }
+
+  display(blink_sw);
 }
 //-------------------------------------------
 mode_t Clock::mode()
@@ -24,7 +33,13 @@ mode_t Clock::mode()
 //-------------------------------------------
 void Clock::set_mode(mode_t mode)
 {
+  Serial.print("Clock::set_mode(0x" + String(mode, 16) + ")");
+  if ( mode == MODE_DISP_DATE ) {
+    _date_start_msec = millis();
+    Serial.print(": _date_start_msec=" + String(_date_start_msec));
+  }
   _mode = mode;
+  Serial.println();
 }
 
 //-------------------------------------------
@@ -279,7 +294,6 @@ void Clock::displaySetTime()
   } // switch ( _mode )
   _vfd->setBlink(blist);
 }
-
 //-------------------------------------------
 void Clock::display(boolean blink_sw)
 {

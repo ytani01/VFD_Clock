@@ -1,7 +1,7 @@
 // VfdClock.ino
 // (c) 2018 FaLab Kannai
 //
-static String	VersionStr	= "06.01.00";
+static String	VersionStr	= "06.01.01";
 
 #include <Wire.h>
 #include "RTClib.h"
@@ -125,8 +125,16 @@ void clockBtn0_LoopHandler()
 {
   switch ( Cl1.mode() ) {
   case Clock::MODE_DISP_TIME:
-    if ( Btn[0].click_count() >= 1 ) {
+    if ( Btn[0].click_count() == 1 ) {
       Cl1.set_mode(Clock::MODE_DISP_DATE);
+      return;
+    }
+    if ( Btn[0].click_count() == 2 ) {
+      startStopWatch();
+      return;
+    }
+    if ( Btn[0].click_count() >= 3 ) {
+      startGame1();
       return;
     }
     if ( Btn[0].long_pressed() || Btn[0].repeat() ) {
@@ -189,6 +197,10 @@ void clockBtn1_LoopHandler()
 //=========================================================
 void stopWatchBtn0_IntrHandler(unsigned long cur_msec)
 {
+}
+//---------------------------------------------------------
+void stopWatchBtn1_IntrHandler(unsigned long cur_msec)
+{
   if ( SW1.mode() == StopWatch::MODE_TIME ) {
     if ( SW1.stat() == StopWatch::STAT_STOP ) {
       SW1.start();
@@ -200,27 +212,23 @@ void stopWatchBtn0_IntrHandler(unsigned long cur_msec)
   }
 }
 //---------------------------------------------------------
-void stopWatchBtn1_IntrHandler(unsigned long cur_msec)
-{
-}
-//---------------------------------------------------------
 void stopWatchBtn0_LoopHandler()
 {
-}
-//---------------------------------------------------------
-void stopWatchBtn1_LoopHandler()
-{
-  if ( Btn[1].click_count() == 1 ) {
+  if ( Btn[0].click_count() == 1 ) {
     if ( SW1.mode() == StopWatch::MODE_TIME && SW1.stat() == StopWatch::STAT_STOP ) {
       SW1.reset();
     }
     return;
   }
   
-  if ( Btn[1].click_count() >= 2 ) {
+  if ( Btn[0].click_count() >= 2 ) {
     startClock();
     return;
   }
+}
+//---------------------------------------------------------
+void stopWatchBtn1_LoopHandler()
+{
 }
 //=========================================================
 // MODE_GAME1
@@ -259,6 +267,10 @@ void game1Btn0_LoopHandler()
       startGame1();
       return;
     }
+    if ( Btn[0].click_count() >= 2 ) {
+      Mode = MODE_CLOCK;
+      return;
+    }
     break;
   default:
     break;
@@ -273,10 +285,6 @@ void game1Btn1_LoopHandler()
   case Game1::MODE_END:
     if ( Btn[1].long_pressed() ) {
       startGame1();
-      return;
-    }
-    if ( Btn[1].click_count() >= 2 ) {
-      Mode = MODE_CLOCK;
       return;
     }
     break;

@@ -83,9 +83,11 @@ class Game1 {
  public:
   static const unsigned long	ENEMY_INTERVAL	= 2500; // msec
   static const unsigned long	BULLET_INTERVAL	=  250; // msec
+  static const unsigned long	DISP_SCORE_MSEC	= 5000; // msec
 
   static const mode_t		MODE_PLAY	= 0x01;
-  static const mode_t		MODE_END	= 0x02;
+  static const mode_t		MODE_SCORE	= 0x02;
+  static const mode_t		MODE_END	= 0x04;
 
   Game1() {};
 
@@ -98,11 +100,14 @@ class Game1 {
   void		display();
 
   mode_t	mode();
+  void		set_mode(mode_t mode);
+
   unsigned long	score();
+  unsigned long score_start_msec();
+  void		set_score_start_msec(unsigned long msec);
+
   Player	*p1();
   Enemy		*e1();
-  
-  void		set_mode(mode_t mode);
   
  private:
   VFD 		*_vfd;
@@ -112,5 +117,6 @@ class Game1 {
   mode_t	_mode	= MODE_PLAY;
 
   unsigned long	_score	= 0;
+  unsigned long	_score_start_msec = 0;
 };
 #endif

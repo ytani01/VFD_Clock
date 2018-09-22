@@ -174,6 +174,7 @@ void Enemy::print(String prefix)
     str += String(_val[i]) + " ";
   }
   str += "}";
+
   Serial.println(str);
 }
 //===========================================
@@ -186,15 +187,15 @@ void Game1::init(VFD *vfd)
   _vfd = vfd;
 
   _p1.init(0);
-  _e1.init(Game1::ENEMY_INTERVAL);
+  _e1.init(ENEMY_INTERVAL);
 
   _score = 0;
-  _mode = Game1::MODE_PLAY;
+  set_mode(MODE_PLAY);
 }
 //-------------------------------------------
 void Game1::loop(unsigned long cur_msec)
 {
-  if ( _mode == Game1::MODE_PLAY ) {
+  if ( _mode == MODE_PLAY ) {
     // Bullet move
     if ( _p1.bullet()->move(cur_msec) ) {
     }
@@ -204,7 +205,7 @@ void Game1::loop(unsigned long cur_msec)
       if ( _e1.x() == 0 ) {
 	// Game Over
 	Serial.println("_score=" + String(_score));
-	_mode = Game1::MODE_END;
+	set_mode(MODE_SCORE);
       }
     }
     // Bullet
@@ -223,7 +224,11 @@ void Game1::loop(unsigned long cur_msec)
 	_p1.bullet_delete();
       }
     }
-  } // MODE_PLAY
+  } else if ( _mode == MODE_SCORE ) {
+    if ( cur_msec - score_start_msec() >= DISP_SCORE_MSEC ) {
+      set_mode(MODE_END);
+    }
+  }
 
   display();
 }
@@ -243,18 +248,23 @@ void Game1::displayGame()
 void Game1::displayScore()
 {
   uint8_t	num;
-  uint8_t	val = VFD::VAL_NULL;
+  uint8_t	val		= VFD::VAL_NULL;
+  boolean	blink_flag	= true;
+
+  if ( _mode == MODE_SCORE ) {
+    blink_flag = true;
+  } else {
+    blink_flag = false;
+  }
   
   for (int i=0; i < _vfd->digitN(); i++) {
     num = _score / int(pow(10, 5 - i)) % 10;
     //Serial.println(String(i) + ":" + String(num) + ":" + String(val));
-    if ( val == VFD::VAL_NULL ) {
-      if ( num != 0 || i == _vfd->digitN() - 1 ) {
-	val = num;
-      }
+    if ( val != VFD::VAL_NULL || num != 0 || i == _vfd->digitN() - 1 ) {
+      val = num;
     }
-    _vfd->set(i, val, false, true);
-  }
+    _vfd->set(i, val, false, blink_flag);
+  } // for
 }
 //-------------------------------------------
 void Game1::display()
@@ -265,6 +275,7 @@ void Game1::display()
   case MODE_PLAY:
     displayGame();
     break;
+  case MODE_SCORE:
   case MODE_END:
     displayScore();
     break;
@@ -280,10 +291,28 @@ mode_t Game1::mode()
   return _mode;
 }
 //-------------------------------------------
+void Game1::set_mode(mode_t mode)
+{
+  if ( mode == MODE_SCORE ) {
+    set_score_start_msec(millis());
+  }
+  _mode = mode;
+}
+
+//-------------------------------------------
 unsigned long Game1::score()
 {
   return _score;
 }
+unsigned long Game1::score_start_msec()
+{
+  return _score_start_msec;
+}
+void Game1::set_score_start_msec(unsigned long msec)
+{
+  _score_start_msec = msec;
+}
+
 //-------------------------------------------
 Player *Game1::p1()
 {
@@ -293,9 +322,4 @@ Player *Game1::p1()
 Enemy *Game1::e1()
 {
   return &_e1;
-}
-//-------------------------------------------
-void Game1::set_mode(mode_t mode)
-{
-  _mode = mode;
 }

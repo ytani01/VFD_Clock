@@ -1,7 +1,7 @@
 // VfdClock.ino
 // (c) 2018 FaLab Kannai
 //
-static String	VersionStr	= "06.01.01";
+static String	VersionStr	= "06.01.02";
 
 #include <Wire.h>
 #include "RTClib.h"
@@ -239,6 +239,7 @@ void game1Btn0_IntrHandler(unsigned long cur_msec)
   case Game1::MODE_PLAY:
     Gm1.p1()->up();
     break;
+  case Game1::MODE_SCORE:
   case Game1::MODE_END:
   default:
     break;
@@ -251,6 +252,7 @@ void game1Btn1_IntrHandler(unsigned long cur_msec)
   case Game1::MODE_PLAY:
     Gm1.p1()->shoot(Game1::BULLET_INTERVAL);
     break;
+  case Game1::MODE_SCORE:
   case Game1::MODE_END:
   default:
     break;
@@ -261,6 +263,8 @@ void game1Btn0_LoopHandler()
 {
   switch ( Gm1.mode() ) {
   case Game1::MODE_PLAY:
+    break;
+  case Game1::MODE_SCORE:
     break;
   case Game1::MODE_END:
     if ( Btn[0].long_pressed() ) {
@@ -281,6 +285,8 @@ void game1Btn1_LoopHandler()
 {
   switch ( Gm1.mode() ) {
   case Game1::MODE_PLAY:
+    break;
+  case Game1::MODE_SCORE:
     break;
   case Game1::MODE_END:
     if ( Btn[1].long_pressed() ) {

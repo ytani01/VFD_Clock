@@ -26,14 +26,26 @@ void loop() {
   btn_event_t	btn_event;
 
   for (int i = 0; i < BUTTON_N; i++) {
-    btn_event = Btn[i].get_event();
-    if ( btn_event != Button::EVENT_NONE ) {
+    while ( Btn[i].get_event(&btn_event) ) {
+      if ( btn_event.e_val & Button::EVENT_INTERRUPT ) {
+	continue;
+      }
+      
       Serial.println(String(cur_msec) + ":Btn[" + String(i) + "]:" +
-		     "0x" + String(btn_event,16) + " " +
-		     String(Btn[i].press_start_msec()) + " " +
-		     String(Btn[i].press_end_msec()) );
-    }
-  }
+		     "0x" + String(btn_event.e_val,16) +
+		     "," +
+		     String(btn_event.msec) +
+		     "," +
+		     String(btn_event.click_count) +
+		     ":" +
+		     String(Btn[i].press_start_msec()) +
+		     "," +
+		     String(Btn[i].press_end_msec()) +
+		     " " +
+		     String(Btn[i].click_count())
+		     );
+    } // while
+  } // for
 
-  delay(10);
+  delay(2);
 }

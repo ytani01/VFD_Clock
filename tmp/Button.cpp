@@ -5,6 +5,7 @@
 
 static unsigned long	Button::Num = 0;
 static Button		*Button::Btn[Button::NUM_MAX];
+static btn_intr_t	*IntrQ::BtnIntr;
 
 //================================================================
 // Interrupt Handler
@@ -25,24 +26,76 @@ ISR (PCINT2_vect)
 	continue;
       }
       btn->set_interrupted(true, cur_msec);
-      if ( val == LOW ) {
-	btn->start_press(cur_msec);
-      } else { // HIGH
-	btn->end_press(cur_msec);
-      }
-      //      Serial.print("[" + String(i) + "]:"
-      //	   + String(btn->prev_value())
-      //	   + "->"
-      //	   + String(val) );
+      btn->qput(val, cur_msec);
     }
   }
   //  Serial.println();
 }
 //================================================================
+IntrQ::IntrQ()
+{
+}
+//----------------------------------------------------------------
+void IntrQ::init(size_t n)
+{
+  _qmax = n;
+  BtnIntr = new btn_intr_t[_qmax];
+  _head = 0;
+  _bottom = 0;
+  _qsize = 0;
+}
+//----------------------------------------------------------------
+void IntrQ::put(boolean val, btn_msec_t msec)
+{
+  if ( _qsize == _qmax ) {
+    return;
+  }
+  BtnIntr[_bottom].val	= val;
+  BtnIntr[_bottom].msec	= msec;
+
+  _bottom = ( _bottom + 1 ) % _qmax;
+  _qsize++;
+}
+//----------------------------------------------------------------
+btn_intr_t *IntrQ::get()
+{
+  btn_intr_t	*ret;
+  
+  if ( _qsize == 0 ) {
+    return (btn_intr_t *)0;
+  }
+  ret = &BtnIntr[_head];
+
+  _head = ( _head + 1 ) % _qmax;
+  _qsize--;
+  return ret;
+}
+//----------------------------------------------------------------
+btn_intr_t *IntrQ::look()
+{
+  if ( _qsize == 0 ) {
+    return (btn_intr_t *)0;
+  }
+  return &BtnIntr[_head];
+}
+//----------------------------------------------------------------
+size_t IntrQ::size() const
+{
+  return _qsize;
+}
+//----------------------------------------------------------------
+boolean IntrQ::empty()
+{
+  if ( _qsize == 0 ) {
+    return true;
+  }
+  return false;
+}
+//================================================================
 Button::Button()
 {
 }
-//================================================================
+//----------------------------------------------------------------
 void Button::init(byte pin, String name)
 {
   _id		= Num++;
@@ -57,8 +110,14 @@ void Button::init(byte pin, String name)
   _prev_value	= HIGH;
   _value	= HIGH;
 
-  start_press(0);
-  end_press(0);
+  _first_press_start_msec = _press_start_msec = _press_end_msec = 0;
+
+  _click_count	= 0;
+  
+  _long_pressed = false;
+  _repeat	= false;
+
+  _q.init(INTR_N);
   
   pinMode(_pin, INPUT_PULLUP);
   pciSetup(_pin);
@@ -122,6 +181,7 @@ boolean Button::get_interrupted()
     _interrupted = false;
     return true;
   }
+
   return false;
 }
 //----------------------------------------------------------------
@@ -135,32 +195,110 @@ btn_msec_t Button::press_end_msec() const
   return _press_end_msec;
 }
 //----------------------------------------------------------------
-void Button::start_press(btn_msec_t msec)
+btn_count_t Button::click_count() const
 {
-  _press_start_msec = msec;
-  _press_end_msec = 0;
+  return _click_count;
 }
 //----------------------------------------------------------------
-void Button::end_press(btn_msec_t msec)
+void Button::qput(boolean val, btn_msec_t msec)
 {
-  _press_end_msec = msec;
+  _q.put(val, msec);
 }
 //----------------------------------------------------------------
-btn_event_t Button::get_event() {
-  btn_msec_t	cur_msec	= millis();
-  btn_event_t	event		= EVENT_NONE;
-  boolean	val		= read();
+btn_intr_t *Button::qget()
+{
+  return _q.get();
+}
+//----------------------------------------------------------------
+btn_intr_t *Button::qlook()
+{
+  return _q.look();
+}
+//----------------------------------------------------------------
+size_t Button::qsize()
+{
+  return _q.size();
+}
+//----------------------------------------------------------------
+boolean Button::qempty()
+{
+  return _q.empty();
+}
+//----------------------------------------------------------------
+boolean Button::get_event(btn_event_t *event) {
+  btn_msec_t	cur_msec = millis();
+  boolean	val	= read();
+  btn_intr_t	*intr;
+  
+  event->e_val = EVENT_NONE;
+  event->msec = cur_msec;
+  event->click_count = 0;
 
-  if ( get_interrupted() ) {
-    if ( val == LOW ) {
-      event = EVENT_PRESSED;
-    } else {
-      event = EVENT_RELEASED;
+  if ( ! qempty() ) {
+    intr = qlook();
+    if ( _click_count > 0 ) {
+      if ( intr->msec - _press_start_msec > CLICK_INTERVAL_MSEC ) {
+	event->e_val = EVENT_CLICKED;
+	event->msec = intr->msec;
+	event->click_count = _click_count;
+	
+	_click_count = 0;
+	_first_press_start_msec = 0;
+	_press_start_msec = 0;
+	_press_end_msec = 0;
+	return true;
+      }
     }
-    return event;
+    
+    intr = qget();
+    event->msec = intr->msec;
+    _long_pressed = false;
+    if ( intr->val == LOW ) {
+      event->e_val = EVENT_PRESSED;
+
+      if ( event->msec - _press_start_msec > CLICK_INTERVAL_MSEC ) {
+	_click_count = 0;
+	_first_press_start_msec = event->msec;
+      }
+      _press_start_msec	= event->msec;
+      _press_end_msec	= event->msec;
+
+      _click_count++;
+    } else {
+      event->e_val = EVENT_RELEASED;
+      
+      _press_end_msec = event->msec;
+    }
+    return true;
+  }
+
+  if ( _click_count > 0 ) {
+    if ( cur_msec - _press_start_msec > CLICK_INTERVAL_MSEC ) {
+      event->e_val = EVENT_CLICKED;
+      event->msec = cur_msec;
+      event->click_count = _click_count;
+
+      _click_count = 0;
+      _first_press_start_msec = 0;
+    }
   }
   
-  return event;
+  if ( event->e_val != EVENT_NONE ) {
+    return true;
+  } else {
+    return false;
+  }
+}
+//----------------------------------------------------------------
+void Button::print()
+{
+  Serial.print("[" + String(_id) + ":" + String(_pin) + ":" + _name + "]");
+}
+//----------------------------------------------------------------
+void Button::println()
+{
+  print();
+  Serial.println();
 }
 //================================================================
 void Button::pciSetup(byte pin)
@@ -169,3 +307,4 @@ void Button::pciSetup(byte pin)
   PCIFR  |= bit (digitalPinToPCICRbit(pin)); // clear any outstanding interrupt
   PCICR  |= bit (digitalPinToPCICRbit(pin)); // enable interrupt for the group
 }
+//================================================================

@@ -70,14 +70,15 @@ boolean Button::get()
     _long_pressed = false;
     _repeat = false;
 
-    if ( _value != _prev_value ) {
+    if ( _prev_value == LOW) {
+      // Released now !
       return true;
     }
     return ret;
   }
 
   // LOW
-  if ( _value != _prev_value ) {
+  if ( _prev_value == HIGH ) {
     // Pushed now !
     _press_start = cur_msec;
     _count++;
@@ -98,6 +99,7 @@ boolean Button::get()
     }
   }
 
+  // long pressed
   if ( cur_msec - _press_start > REPEAT_MSEC ) {
     _repeat = true;
     _press_start = cur_msec;

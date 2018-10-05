@@ -16,7 +16,7 @@ VFD管のデジタル時計です。
 
 ## 使用方法
 
-![Guide](Guide.png)
+![Guide](Guide1.png)
 
 ### 1. 起動
 
